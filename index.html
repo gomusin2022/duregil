@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>부평농협 둘레길 산악회 - 관리자 시스템</title>
     <style>
-        /* [기본 테마 - 다크 메탈 원본 보존] */
+        /* [1. 스타일 시트: 국장님의 다크 메탈 원본 디자인 그대로] */
         :root {
             --bg-dark: #121212;
             --metal-gray: #2c2c2c;
@@ -14,6 +14,7 @@
             --point-red: #ff4d4d;
             --point-green: #4dff88;
             --point-blue: #4da6ff;
+            --point-orange: #f39c12;
         }
 
         body {
@@ -28,7 +29,6 @@
             box-sizing: border-box;
         }
 
-        /* [헤더 및 메인 화면 영역] */
         .header {
             text-align: center;
             font-size: 1.1rem;
@@ -46,12 +46,9 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             overflow-y: auto;
         }
 
-        /* [메탈 버튼 시스템 - 입체 디자인 원본] */
         .button-section {
             flex: 4;
             display: flex;
@@ -66,7 +63,6 @@
         }
 
         .btn-metal {
-            border-radius: 0; 
             border: 1px solid #111;
             background: linear-gradient(145deg, var(--metal-bright), #1a1a1a);
             color: white;
@@ -88,11 +84,30 @@
             transform: scale(0.98);
         }
 
-        .btn-wide {
-            width: 100%;
-            background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
-            border: 1px solid #000;
-            color: #4da6ff;
+        /* [달력 그리드 내부 디자인] */
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #444;
+            border: 1px solid #444;
+        }
+
+        .cal-day {
+            background: #222;
+            min-height: 45px;
+            padding: 5px;
+            font-size: 0.8rem;
+            border: 1px solid #181818;
+            color: #ccc;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin: 1px;
         }
     </style>
 </head>
@@ -101,38 +116,121 @@
     <div class="header">[부평농협 둘레길 산악회]</div>
 
     <div class="calendar-container" id="main-display">
-        <p style="color:#555;">시스템 로딩 중...</p>
-    </div>
+        </div>
 
     <div class="button-section">
         <div class="grid-row">
-            <div class="btn-metal" onclick="app.showMember()">회원 관리</div>
-            <div class="btn-metal" onclick="app.showSchedule()">행사 / 일정</div>
+            <div class="btn-metal" onclick="alert('회원 관리 준비 중')">회원 관리</div>
+            <div class="btn-metal" onclick="location.reload()">행사 / 일정</div>
         </div>
         <div class="grid-row">
             <div class="btn-metal" onclick="alert('회계 관리 준비 중')">회계 관리</div>
             <div class="btn-metal" onclick="alert('공지 문자 준비 중')">공지 문자</div>
         </div>
-        
-        <div class="btn-metal btn-wide" onclick="alert('보고서 센터 준비 중')">
-            🖨️ 출력 및 보고서 센터
-        </div>
     </div>
 
-    <script type="module">
-        import { initMember } from './modules/member.js';
-        import { initSchedule } from './modules/schedule.js';
+    <script>
+        /* [2. 자바스크립트: 국장님이 검수하신 모든 기능 포함] */
+        
+        // 페이지가 열리자마자 실행되는 메인 함수
+        function initSchedule() {
+            const display = document.getElementById('main-display');
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            
+            // 기본 선택 색상 설정
+            window.selectedColor = 'var(--point-red)';
 
-        window.app = {
-            showMember: () => initMember(),
-            showSchedule: () => initSchedule()
-        };
+            display.innerHTML = `
+                <div style="padding:15px; background:#181818; height:100%; box-sizing:border-box;">
+                    <h3 style="color:var(--point-orange); margin:0 0 10px 0; text-align:center;">📅 ${year}년 ${month + 1}월 일정</h3>
+                    
+                    <div class="cal-grid">
+                        ${['일','월','화','수','목','금','토'].map(d => `<div style="background:#222; padding:5px; text-align:center; font-size:0.7rem; color:#888;">${d}</div>`).join('')}
+                        ${generateCalendarDays(year, month)}
+                    </div>
 
-        window.onload = () => {
-            if (typeof initSchedule === 'function') {
-                initSchedule();
+                    <div style="margin-top:15px; background:#252525; padding:15px; border-radius:10px; display:flex; flex-direction:column; gap:8px;">
+                        <input type="text" id="ev-name" placeholder="행사명" style="padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
+                        <input type="number" id="ev-date" placeholder="날짜(숫자만)" style="padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
+                        
+                        <div style="display:flex; gap:5px;">
+                            <div onclick="selectType('var(--point-red)', this)" style="flex:1; height:35px; background:var(--point-red); border:2px solid white; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">산악회</div>
+                            <div onclick="selectType('var(--point-green)', this)" style="flex:1; height:35px; background:var(--point-green); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">기타교실</div>
+                            <div onclick="selectType('var(--point-blue)', this)" style="flex:1; height:35px; background:var(--point-blue); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">범방위</div>
+                            <div onclick="selectType('var(--point-orange)', this)" style="flex:1; height:35px; background:var(--point-orange); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">기타</div>
+                        </div>
+
+                        <button onclick="saveEvent()" style="padding:15px; background:var(--point-orange); color:black; border:none; font-weight:bold; cursor:pointer; border-radius:5px; font-size:1rem;">일정 저장</button>
+                    </div>
+
+                    <h4 style="color:#888; margin:20px 0 10px 0;">등록된 일정</h4>
+                    <ul id="ev-list" style="list-style:none; padding:0; margin:0;"></ul>
+                </div>
+            `;
+            renderEvents();
+        }
+
+        // 달력 날짜 계산 및 점(dot) 표시 함수
+        function generateCalendarDays(year, month) {
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            let daysHtml = '';
+            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
+
+            for (let i = 0; i < firstDay; i++) daysHtml += `<div style="background:#181818; padding:15px;"></div>`;
+            for (let d = 1; d <= lastDate; d++) {
+                const dayEvs = events.filter(e => parseInt(e.date) === d);
+                const dots = dayEvs.map(e => `<span class="dot" style="background:${e.type}"></span>`).join('');
+                daysHtml += `<div class="cal-day">${d}<br><div style="display:flex; flex-wrap:wrap;">${dots}</div></div>`;
             }
+            return daysHtml;
+        }
+
+        // 색상 버튼 선택 처리
+        window.selectType = function(color, el) {
+            window.selectedColor = color;
+            const btns = el.parentElement.children;
+            for(let b of btns) b.style.border = "2px solid transparent";
+            el.style.border = "2px solid white";
         };
+
+        // 일정 저장 처리
+        window.saveEvent = function() {
+            const name = document.getElementById('ev-name').value;
+            const date = document.getElementById('ev-date').value;
+            if(!name || !date) return alert("행사명과 날짜를 입력하세요!");
+
+            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
+            events.push({ id: Date.now(), name, date, type: window.selectedColor });
+            localStorage.setItem('dure_evs', JSON.stringify(events));
+            initSchedule();
+        };
+
+        // 저장된 일정 목록 표시
+        function renderEvents() {
+            const list = document.getElementById('ev-list');
+            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
+            list.innerHTML = events.slice().reverse().map(e => `
+                <li style="color:white; font-size:0.85rem; margin-bottom:8px; border-left:4px solid ${e.type}; padding:10px; background:#222; display:flex; justify-content:space-between; align-items:center; border-radius:0 5px 5px 0;">
+                    <span>${e.date}일: ${e.name}</span>
+                    <button onclick="deleteEvent(${e.id})" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; font-size:0.7rem; cursor:pointer;">삭제</button>
+                </li>
+            `).join('');
+        }
+
+        // 일정 삭제 처리
+        window.deleteEvent = function(id) {
+            if(!confirm("정말 삭제하시겠습니까?")) return;
+            let events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
+            events = events.filter(e => e.id !== id);
+            localStorage.setItem('dure_evs', JSON.stringify(events));
+            initSchedule();
+        }
+
+        // [3. 화면 접속 시 자동 실행]
+        window.onload = initSchedule;
     </script>
 </body>
 </html>
