@@ -32,9 +32,12 @@
 
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         
-        /* [핵심] 금지 표시 커서 제어 */
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3; }
-        .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); } /* 빈 칸은 삭제 시 기본 커서 */
+        .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
+
+        /* 삭제 확인용 긴박한 붉은색 효과 */
+        .del-confirm-active { background: #ff0000 !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
@@ -67,7 +70,7 @@
                 <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">저장</button>
                 <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
                 <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
-                <button id="mode-del" onclick="changeRadioMode('del')" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
+                <button id="mode-del" onclick="handleDelBtnClick()" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
             </div>
         </div>
     </div>
@@ -77,15 +80,33 @@
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; 
 
+        // [삭제 버튼 지능화 제어]
+        function handleDelBtnClick() {
+            if (currentMode !== 'del') {
+                changeRadioMode('del');
+            } else {
+                // 이미 삭제 모드인 상태에서 누름
+                if (editingIdx !== -1) {
+                    deleteData(); // 선택된 게 있다면 삭제 실행
+                } else {
+                    alert("삭제할 일정을 먼저 선택하세요.");
+                }
+            }
+        }
+
         function changeRadioMode(mode) {
             currentMode = mode;
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
-            document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
+            
+            const delBtn = document.getElementById('mode-del');
+            delBtn.classList.toggle('radio-active', mode === 'del');
+            delBtn.innerText = "삭제";
+            delBtn.classList.remove('del-confirm-active');
+
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        // [중점 수정] 삭제 모드일 때 블록 커서 손가락 모양 강제 로직
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -98,25 +119,27 @@
 
                 if(otherEvIdx !== -1) { 
                     b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
-                    // 삭제 모드일 때는 locked(금지표시)를 절대 적용하지 않음
                     if(currentMode === 'edit') b.classList.add('locked'); 
                 }
                 else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; }
                 
-                // 삭제 모드에서 빈 칸은 클릭할 수 없으므로 disabled(커서 기본)
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
 
                 b.onclick = () => {
                     if(otherEvIdx !== -1) {
-                        if(currentMode !== 'add') {
-                            editingIdx = otherEvIdx; const e = evs[otherEvIdx];
-                            startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                            document.getElementById('ev-name').value = e.name;
-                            initPalette(); initTime();
+                        editingIdx = otherEvIdx; const e = evs[otherEvIdx];
+                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
+                        document.getElementById('ev-name').value = e.name;
+                        
+                        // [삭제 모드 전용] 블록 선택 시 버튼 이름 변경
+                        if(currentMode === 'del') {
+                            const delBtn = document.getElementById('mode-del');
+                            delBtn.innerText = "삭제확인";
+                            delBtn.classList.add('del-confirm-active');
                         }
-                        return;
+                        
+                        initPalette(); initTime(); return;
                     }
-                    // 추가 모드 또는 수정 모드(내 일정 선택 후) 시간 선택
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
                         if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
                     }
@@ -126,20 +149,27 @@
             }
         }
 
-        // --- 이하 국장님 소스 구조 유지 ---
+        window.deleteData = function() { 
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            data[currentDay].events.splice(editingIdx, 1);
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar(); 
+            
+            // 삭제 후 바로 다시 삭제 모드로 대기 (버튼 원복)
+            editingIdx = -1;
+            changeRadioMode('del'); 
+        };
+
+        // --- 기타 디자인 유지 로직 ---
         window.saveData = function() {
-            if(currentMode === 'del') { deleteData(); return; }
+            if(currentMode === 'del') { handleDelBtnClick(); return; }
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
-            for (let i = s; i <= e; i++) {
-                if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) {
-                    return alert("범위 내에 일정이 중복됩니다.");
-                }
-            }
+            for (let i = s; i <= e; i++) { if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재"); }
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
@@ -158,39 +188,21 @@
             for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=lastDate; d++) {
                 const dData = data[d] || { events: [] };
-                let barHtml = Array(12).fill(0).map((_,i)=>{
-                    const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end);
-                    return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`;
-                }).join('');
-                html += `<div class="cal-day" onclick="openModal(${d})">
-                    <div style="display:flex; justify-content:space-between; pointer-events:none;">
-                        <div class="day-num">${d}</div>
-                        <div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div>
-                    </div>
-                    <div class="time-bar">${barHtml}</div>
-                </div>`;
+                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
+                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
             }
             container.innerHTML = html;
         }
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; changeRadioMode('add'); };
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
         window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
-        function updateTimeUI() { document.querySelectorAll('#time-picker div').forEach((btn, idx) => {
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
-            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            if(startSlot !== null && idx >= s && idx <= e) btn.style.outline = "2px solid gold"; else btn.style.outline = "none";
-        }); }
+        function updateTimeUI() { document.querySelectorAll('#time-picker div').forEach((btn, idx) => { const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); if(startSlot !== null && idx >= s && idx <= e) btn.style.outline = "2px solid gold"; else btn.style.outline = "none"; }); }
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); d.style.background = c;
-                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
-                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
+                const d = document.createElement('div'); d.style.background = c; d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        window.deleteData = function() { if(editingIdx === -1) return alert("삭제할 대상을 선택하세요."); if(!confirm("삭제하시겠습니까?")) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
-        window.getRealWeather = function() { /* 생략 */ };
-        window.confirmLocation = function() { /* 생략 */ };
         window.onload = renderCalendar;
     </script>
 </body>
