@@ -32,8 +32,8 @@
 
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         
-        /* 커서 및 상태 스타일 */
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; filter: brightness(0.4); }
+        /* 커서 아이콘 설정 */
+        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
         .del-confirm-active { background: #ff0000 !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0.7; } }
@@ -59,7 +59,7 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns" style="display: flex; flex-direction: column; width: 85px; gap: 5px;">
-                    <button class="btn-auto" onclick="alert('날씨 서비스 준비중..')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
+                    <button class="btn-auto" onclick="alert('준비중')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
                     <button id="loc-btn" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지역선택</button>
                 </div>
             </div>
@@ -102,32 +102,30 @@
             
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
-                const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
-                const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
+                const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
+                const isEditingThis = foundIdx !== -1 && foundIdx === editingIdx;
 
-                if(otherEvIdx !== -1) { 
-                    b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
-                    // 수정 모드에서 블록 선택 후에는 다른 블록들을 어둡게(locked)
-                    if(currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked'); 
-                    else b.style.filter = "brightness(0.7)"; // 선택 전에는 적당히 구분되게
-                }
-                else if(isMyEv) { 
-                    // [중요 교정] 선택된 내 블록은 원래 색상으로 쨍하게 복구!
-                    b.style.background = selectedColor; 
-                    b.style.filter = "none"; // 필터 완전 제거
-                    b.style.color = "#000"; 
-                    b.style.outline = "2px solid gold"; 
-                    b.style.boxShadow = "0 0 10px rgba(212,175,55,0.8)";
-                }
-                
-                if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) {
+                if(foundIdx !== -1) {
+                    const target = evs[foundIdx];
+                    b.style.background = isEditingThis ? selectedColor : target.color;
+                    b.style.color = "#000";
+                    if(isEditingThis) {
+                        b.style.outline = "2px solid gold";
+                        b.style.boxShadow = "inset 0 0 5px white";
+                    }
+                    
+                    // [중요] 추가 모드에서만 다른 블록에 금지 표시. 수정/삭제 모드에선 즉시 클릭 가능하게 pointer 유지.
+                    if(currentMode === 'add') b.classList.add('locked');
+                } else {
+                    // 빈 칸 제어
                     if(currentMode === 'del' || (currentMode === 'edit' && editingIdx === -1)) b.classList.add('disabled');
                 }
 
                 b.onclick = () => {
-                    if(otherEvIdx !== -1) {
+                    // 블록 클릭 시 (수정/삭제 모드)
+                    if(foundIdx !== -1) {
                         if(currentMode !== 'add') {
-                            editingIdx = otherEvIdx; const e = evs[otherEvIdx];
+                            editingIdx = foundIdx; const e = evs[foundIdx];
                             startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                             document.getElementById('ev-name').value = e.name;
                             if(currentMode === 'del') {
@@ -138,16 +136,16 @@
                         }
                         return;
                     }
+                    // 시간 범위 선택 (추가 모드 혹은 수정 대상이 정해졌을 때 빈 칸 클릭)
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
                         if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
+                        updateTimeUI();
                     }
-                    updateTimeUI();
                 };
                 t.appendChild(b);
             }
         }
 
-        // --- 이하 데이터 처리 및 UI 로직 동일 ---
         window.saveData = function() {
             if(currentMode === 'del') { handleDelBtnClick(); return; }
             const name = document.getElementById('ev-name').value;
@@ -183,7 +181,6 @@
             ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
             for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=lastDate; d++) {
-                const dayIdx = new Date(year, month, d).getDay();
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
