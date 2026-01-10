@@ -22,10 +22,10 @@
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* [핵심 수정] 연도 표시의 위아래 '틈'을 황금 비율로 조정 */
+        /* 헤더 설정: 연도 텍스트 아래쪽 틈새 8px 고정 */
         .header-container { 
             text-align: center; 
-            padding: 15px 0 0 0; 
+            padding: 12px 0 0 0; 
             background: linear-gradient(145deg, #0d2a0d, #051405); 
             border: 2px solid var(--nh-gold); 
             border-radius: 8px; 
@@ -33,49 +33,44 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            z-index: 10; /* 헤더가 달력보다 뒤로 가게 설정 */
         }
         
-        .header-title { 
-            font-size: 2.1rem; 
-            font-weight: 900; 
-            color: var(--nh-gold); 
-            text-shadow: 2px 2px 4px #000; 
-            margin: 0; 
-            line-height: 1.0; 
-        }
-        
-        .year-text { 
-            color: var(--nh-gold); 
-            font-weight: bold; 
-            font-size: 1.25rem; 
-            letter-spacing: 1px; 
-            margin-top: 18px;    /* 타이틀과의 틈 (넉넉하게) */
-            margin-bottom: 8px; /* [중요] 달력 줄과의 틈 (적당히 띄움) */
-            line-height: 1;
+        .header-title { font-size: 2.1rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.1; }
+        .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.25rem; letter-spacing: 1px; margin-top: 15px; margin-bottom: 8px; line-height: 1; }
+
+        /* [핵심 수정] 달력 컨테이너가 헤더의 연도 글자를 덮지 않도록 위치 조정 */
+        .calendar-container { 
+            flex: 1; 
+            margin-top: 10px; /* 헤더와의 확실한 물리적 틈 */
+            display: flex; 
+            flex-direction: column; 
+            background: #051405; 
+            border: 1px solid var(--nh-green); 
+            overflow: hidden; 
+            position: relative;
+            z-index: 20; /* 클릭 이벤트를 받기 위해 우선순위 높임 */
         }
 
-        .calendar-container { flex: 1; margin-top: 8px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
         .weekday-header { padding: 6px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
 
-        .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; }
+        .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; pointer-events: auto !important; }
         .cal-day.other-month { background: #040c04; cursor: default; }
         .cal-day.other-month .day-num-text { color: #333 !important; }
 
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
-
         .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
-        
         .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
         .cloud-icon { display: inline-block; font-size: 1.35rem; font-style: normal; filter: brightness(1.2) contrast(1.1) drop-shadow(1px 1px 2px rgba(255,255,255,0.4)); -webkit-text-fill-color: white; }
         .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
         .we-row-3 { font-size: 0.75rem; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
-
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
+        /* 입력 모달 (수정 없음) */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -97,8 +92,28 @@
         <div id="main-calendar" class="cal-grid"></div>
     </div>
 
+    <div id="input-modal">
+        <div class="modal-content">
+            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 10px 0; font-size: 1.3rem;"></h3>
+            <div id="time-range-box" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
+            <div class="input-row">
+                <div class="color-grid-9" id="color-palette"></div>
+                <textarea id="ev-name" class="ev-input" placeholder="일정 입력"></textarea>
+                <button class="btn-weather-fetch" onclick="quickWeatherAndSave()">자동<br>날씨</button>
+            </div>
+            <div class="action-btns">
+                <div class="btn" onclick="resetForm()">추가</div>
+                <div class="btn" onclick="saveData(false)">저장</div>
+                <div class="btn" onclick="saveData(true)">수정</div>
+                <div class="btn" onclick="deleteSpecific()">삭제</div>
+                <div class="btn" style="border-color: var(--nh-gold);" onclick="closeModal()">완료</div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const storageKey = 'dure_final_v31_perfect_gap';
+        // 코드 충돌을 막기 위해 전용 스토리지 키 사용
+        const storageKey = 'dure_final_v32_click_fixed';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -136,7 +151,7 @@
 
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; pointer-events: none;">
                             <div class="day-num-text" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
                             <div class="weather-display">
                                 <div class="we-row-1">${we.low ? we.low+'/'+we.high : ''}</div>
@@ -147,7 +162,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
+                        <div class="time-timeline" style="pointer-events: none;">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
                     </div>`;
             }
             const totalCells = firstDayIdx + lastDate;
