@@ -12,9 +12,14 @@
             --metal-gradient: linear-gradient(145deg, #555555, #333333);
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* 헤더 스타일 - 화살표 버튼 포함 */
         .header-container { text-align: center; padding: 10px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
-        .header-title { font-size: 2rem; font-weight: 900; color: var(--nh-gold); margin: 0; }
-        .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.2rem; margin-top: 5px; }
+        .header-title { font-size: 1.8rem; font-weight: 900; color: var(--nh-gold); margin: 0; }
+        .nav-container { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 5px; }
+        .nav-btn { background: var(--metal-gradient); color: var(--nh-gold); border: 1px solid var(--nh-gold); border-radius: 5px; padding: 2px 10px; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .year-text { color: #fff; font-weight: bold; font-size: 1.3rem; min-width: 140px; }
 
         .calendar-container { flex: 1; margin-top: 10px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #1a331a; }
@@ -28,32 +33,27 @@
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; position: relative; }
 
-        .metal-btn { 
-            background: var(--metal-gradient); 
-            color: #fff; 
-            border: 1px solid #666; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            height: 45px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
-
-        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; }
-        .confirm-active { background: #ffffff !important; color: #000000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
+        .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #666; border-radius: 8px; font-weight: bold; cursor: pointer; height: 45px; }
+        .radio-active { background: var(--nh-gold) !important; color: #000 !important; }
+        .confirm-active { background: #ffffff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; animation: blink 0.8s infinite; }
         
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
-        .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
         @keyframes blink { 50% { opacity: 0.7; } }
+        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
+        .time-btn.disabled { opacity: 0.2; cursor: default; }
     </style>
 </head>
 <body>
 
-    <div class="header-container"><div class="header-title">부평농협 둘레길 산악회</div><div id="year-title" class="year-text"></div></div>
+    <div class="header-container">
+        <div class="header-title">부평농협 둘레길 산악회</div>
+        <div class="nav-container">
+            <button id="prevMonth" class="nav-btn" onclick="changeMonth(-1)">◀</button>
+            <div id="year-title" class="year-text"></div>
+            <button id="nextMonth" class="nav-btn" onclick="changeMonth(1)">▶</button>
+        </div>
+    </div>
+
     <div class="calendar-container"><div id="main-calendar" class="cal-grid"></div></div>
 
     <div id="input-modal" class="modal">
@@ -77,34 +77,78 @@
         </div>
     </div>
 
-    <div id="map-overlay">
-        <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:15px; text-align:center;">장소 지도 검색</div>
-        <div style="display:flex; gap:5px; margin-bottom:10px;"><input type="text" id="map-search-input" style="flex:1; padding:12px; border-radius:5px; border:none;"><button onclick="searchPlace()" style="padding:10px 20px; background:var(--nh-gold); border:none; border-radius:5px; font-weight:bold;">검색</button></div>
-        <div id="map-container"></div>
-        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:15px; background:var(--nh-green); color:white; font-weight:bold; border:none; border-radius:8px;">이 위치로 확정</button><button onclick="document.getElementById('map-overlay').style.display='none'" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button></div>
+    <div id="map-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; padding:20px; box-sizing:border-box;">
+        <div id="map-container" style="width:100%; height:300px; border-radius:10px; border:2px solid var(--nh-gold); margin-bottom:15px;"></div>
+        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:15px; background:var(--nh-green); color:white; font-weight:bold; border-radius:8px; border:none;">확정</button></div>
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v10_final';
-        const year = 2026, month = 0; // 2026년 1월
-        let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; let map, marker, ps;
+        const storageKeyPrefix = 'nh_v11_';
+        // 기준 날짜 (2026년 1월)
+        const baseDate = new Date(2026, 0, 1);
+        let viewDate = new Date(2026, 0, 1);
+        
+        let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1, currentMode = 'add';
+
+        // 월 변경 함수 (최대 전후 1년 제한)
+        function changeMonth(diff) {
+            const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + diff, 1);
+            const diffMonths = (newDate.getFullYear() - baseDate.getFullYear()) * 12 + (newDate.getMonth() - baseDate.getMonth());
+            
+            if (Math.abs(diffMonths) <= 12) {
+                viewDate = newDate;
+                renderCalendar();
+            }
+        }
+
+        function getStore() {
+            const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1);
+            return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
+        }
+
+        function renderCalendar() {
+            const { data } = getStore();
+            const container = document.getElementById('main-calendar');
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+            
+            document.getElementById('year-title').innerText = `${year}년 ${month + 1}월`;
+            
+            // 화살표 활성/비활성 제어
+            const diffMonths = (year - baseDate.getFullYear()) * 12 + (month - baseDate.getMonth());
+            document.getElementById('prevMonth').disabled = diffMonths <= -12;
+            document.getElementById('nextMonth').disabled = diffMonths >= 12;
+
+            let html = '';
+            ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            for(let i=0; i<firstDay; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
+            for(let d=1; d<=lastDate; d++) {
+                const dData = data[d] || { events: [] };
+                let barHtml = Array(12).fill(0).map((_,i)=>{ 
+                    const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); 
+                    return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; 
+                }).join('');
+                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div style="font-size:0.7rem; color:var(--nh-gold);">${dData.weather?.location || ''}</div></div><div class="time-bar">${barHtml}</div></div>`;
+            }
+            container.innerHTML = html;
+        }
 
         window.openModal = function(d) { 
             currentDay = d; 
-            // [업데이트] 요일 계산 로직
             const week = ['일', '월', '화', '수', '목', '금', '토'];
-            const dayOfWeek = week[new Date(year, month, d).getDay()];
-            
-            // 제목에 연/월/일/요일 표시
-            document.getElementById('modal-date-title').innerText = `${year}년 ${month+1}월 ${d}일 (${dayOfWeek}) 일정`; 
-            
+            const dow = week[new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()];
+            document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}년 ${viewDate.getMonth()+1}월 ${d}일 (${dow}) 일정`; 
             document.getElementById('input-modal').style.display = 'flex'; 
             resetForm(); initPalette(); initTime(); handleModeBtn('add'); 
         };
 
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
 
+        // [이하 기존 로직 동일하게 유지하되 getStore() 사용하도록 수정]
         function handleModeBtn(mode) {
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
@@ -140,7 +184,7 @@
 
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
-            const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const { data } = getStore();
             const evs = data[currentDay]?.events || [];
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
@@ -189,7 +233,7 @@
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const { key, data } = getStore();
             const evs = data[currentDay]?.events || [];
             for (let i = s; i <= e; i++) {
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
@@ -197,33 +241,19 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); 
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
         }
 
         function deleteData() { 
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const { key, data } = getStore();
             data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); 
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
-        }
-
-        function renderCalendar() {
-            const container = document.getElementById('main-calendar');
-            const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            let html = ''; ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
-            for(let i=0; i<new Date(year, month, 1).getDay(); i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
-            const lastDate = new Date(year, month+1, 0).getDate();
-            for(let d=1; d<=lastDate; d++) {
-                const dData = data[d] || { events: [] };
-                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
-                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
-            }
-            container.innerHTML = html; document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
         }
         
         function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; }
@@ -234,9 +264,6 @@
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); ps = new kakao.maps.services.Places(); }
-        function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
-        function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
         window.onload = renderCalendar;
     </script>
 </body>
