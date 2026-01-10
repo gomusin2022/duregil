@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 스마트 전산</title>
+    <title>부평농협 둘레길 산악회 - 정밀 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -13,16 +13,16 @@
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
             --rain-blue: #00d4ff;
-            --wind-mild: #00d4ff; 
-            --wind-strong: #bf00ff;
-            --dust-good: #00ff00;
-            --dust-bad: #ff8000;
+            /* [수정] 국장님 요청: 미풍을 미색으로 변경 */
+            --wind-mild: #f5f5dc;  /* 미색 (Beige/Cream) */
+            --wind-strong: #bf00ff; /* 강풍: 보라 */
+            --dust-good: #00ff00;  /* 좋음: 녹색 */
+            --dust-bad: #ff8000;   /* 나쁨: 주황 */
             --metal-button: #2a2a2a;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 헤더 설정: 연도 텍스트 아래쪽 틈새 8px 고정 */
         .header-container { 
             text-align: center; 
             padding: 12px 0 0 0; 
@@ -33,23 +33,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            z-index: 10; /* 헤더가 달력보다 뒤로 가게 설정 */
+            z-index: 10;
         }
         
         .header-title { font-size: 2.1rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.1; }
         .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.25rem; letter-spacing: 1px; margin-top: 15px; margin-bottom: 8px; line-height: 1; }
 
-        /* [핵심 수정] 달력 컨테이너가 헤더의 연도 글자를 덮지 않도록 위치 조정 */
         .calendar-container { 
             flex: 1; 
-            margin-top: 10px; /* 헤더와의 확실한 물리적 틈 */
+            margin-top: 10px; 
             display: flex; 
             flex-direction: column; 
             background: #051405; 
             border: 1px solid var(--nh-green); 
             overflow: hidden; 
             position: relative;
-            z-index: 20; /* 클릭 이벤트를 받기 위해 우선순위 높임 */
+            z-index: 20; 
         }
 
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
@@ -63,14 +62,19 @@
         .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
+        
+        /* 아이콘 필터 */
         .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
         .cloud-icon { display: inline-block; font-size: 1.35rem; font-style: normal; filter: brightness(1.2) contrast(1.1) drop-shadow(1px 1px 2px rgba(255,255,255,0.4)); -webkit-text-fill-color: white; }
         .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
+
+        /* 하단 기상 정보 줄 */
         .we-row-3 { font-size: 0.75rem; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
+        
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 입력 모달 (수정 없음) */
+        /* 입력 모달 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -112,8 +116,7 @@
     </div>
 
     <script>
-        // 코드 충돌을 막기 위해 전용 스토리지 키 사용
-        const storageKey = 'dure_final_v32_click_fixed';
+        const storageKey = 'dure_final_v33_beigewind';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -146,6 +149,7 @@
                     else weatherIcon = we.state.split(' ')[0];
                 }
 
+                /* [수정] 바람색은 국장님 요청대로 미색 적용 */
                 let windColor = we.wind === '강풍' ? 'var(--wind-strong)' : 'var(--wind-mild)';
                 let dustColor = we.dust === '나쁨' ? 'var(--dust-bad)' : 'var(--dust-good)';
 
@@ -170,6 +174,7 @@
             container.innerHTML = html;
         }
 
+        /* 제어 로직들 */
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
