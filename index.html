@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 고화질 전산</title>
+    <title>부평농협 둘레길 산악회 - 고품격 기상 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -13,7 +13,6 @@
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
             --rain-blue: #00d4ff;
-            --cloud-silver: #e0e0e0; /* 구름용 실버 색상 */
             --metal-button: #2a2a2a;
         }
 
@@ -31,24 +30,23 @@
 
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
 
-        /* [수정] 날씨 레이아웃 및 커스텀 아이콘 효과 */
+        /* [수정] 날씨 3단 레이아웃 및 고급 아이콘 효과 */
         .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
         
-        /* 입체 우산 필터 */
+        /* [핵심 수정] 고급 필터가 적용된 입체 구름 및 우산 */
         .umbrella-icon { 
             display: inline-block; font-size: 1.25rem; font-style: normal;
-            filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(500%) brightness(100%);
+            filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%);
         }
 
-        /* [새로운 수정] 입체 구름 아이콘 필터 */
         .cloud-icon {
-            display: inline-block; font-size: 1.25rem; font-style: normal;
-            /* 구름을 묵직한 메탈릭 실버로 변환하는 필터 */
-            filter: grayscale(100%) brightness(150%) contrast(120%) drop-shadow(1px 1px 1px #000);
-            color: var(--cloud-silver);
+            display: inline-block; font-size: 1.35rem; font-style: normal;
+            /* 구름을 사진처럼 하얗고 몽글몽글하게 만드는 필터 */
+            filter: brightness(1.2) contrast(1.1) drop-shadow(1px 1px 2px rgba(255,255,255,0.4));
+            -webkit-text-fill-color: white;
         }
 
         .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
@@ -57,12 +55,11 @@
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 모달 설정 동일 */
+        /* 팝업 모달 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; border: 1px solid #444; background: var(--metal-button); color: var(--text-silver); font-size: 0.85rem; }
-        /* 입력 행 동일 */
         .input-row { display: flex; gap: 8px; margin-bottom: 15px; height: 85px; }
         .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; height: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
         .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
@@ -100,7 +97,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_pro_cloud_v1';
+        const storageKey = 'dure_final_ultra_v1';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -127,7 +124,6 @@
                 let slots = Array(12).fill('#1a2a1a');
                 (dayData.events || []).forEach(ev => { for(let s=ev.start; s<=ev.end; s++) slots[s] = ev.color; });
 
-                // 아이콘 선택 로직
                 let weatherIcon = '';
                 if(we.state) {
                     if(we.state.includes('비')) weatherIcon = '<i class="umbrella-icon">☔</i>';
@@ -158,7 +154,6 @@
             container.innerHTML = html;
         }
 
-        // 공통 로직 (저장, 삭제, 팔레트 등)
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
