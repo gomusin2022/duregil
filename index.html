@@ -33,7 +33,7 @@
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         
         /* 커서 및 상태 스타일 */
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
+        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; filter: brightness(0.4); }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
         .del-confirm-active { background: #ff0000 !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0.7; } }
@@ -107,14 +107,17 @@
 
                 if(otherEvIdx !== -1) { 
                     b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
+                    // 수정 모드에서 블록 선택 후에는 다른 블록들을 어둡게(locked)
                     if(currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked'); 
+                    else b.style.filter = "brightness(0.7)"; // 선택 전에는 적당히 구분되게
                 }
                 else if(isMyEv) { 
-                    // [핵심 변경] 회색 대신 본래 색상을 유지하며 어둡게 처리
+                    // [중요 교정] 선택된 내 블록은 원래 색상으로 쨍하게 복구!
                     b.style.background = selectedColor; 
-                    b.style.filter = "brightness(0.5)"; 
-                    b.style.color = "#fff"; 
+                    b.style.filter = "none"; // 필터 완전 제거
+                    b.style.color = "#000"; 
                     b.style.outline = "2px solid gold"; 
+                    b.style.boxShadow = "0 0 10px rgba(212,175,55,0.8)";
                 }
                 
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) {
@@ -144,6 +147,7 @@
             }
         }
 
+        // --- 이하 데이터 처리 및 UI 로직 동일 ---
         window.saveData = function() {
             if(currentMode === 'del') { handleDelBtnClick(); return; }
             const name = document.getElementById('ev-name').value;
@@ -179,6 +183,7 @@
             ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
             for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=lastDate; d++) {
+                const dayIdx = new Date(year, month, d).getDay();
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
