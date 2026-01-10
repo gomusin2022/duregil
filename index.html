@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 정밀 기상 전산</title>
+    <title>부평농협 둘레길 산악회 - 스마트 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -13,17 +13,30 @@
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
             --rain-blue: #00d4ff;
-            /* 국장님 지정 색상 추가 */
-            --wind-mild: #00d4ff;  /* 미풍: 하늘 */
-            --wind-strong: #bf00ff; /* 강풍: 보라 */
-            --dust-good: #00ff00;  /* 좋음: 녹색 */
-            --dust-bad: #ff8000;   /* 나쁨: 주황 */
+            --wind-mild: #00d4ff; 
+            --wind-strong: #bf00ff;
+            --dust-good: #00ff00;
+            --dust-bad: #ff8000;
             --metal-button: #2a2a2a;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .header-container { text-align: center; padding: 8px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
-        .header-title { font-size: 1.8rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; }
+        
+        /* [재수정] 국장님 요청대로 타이틀이 위, 연도가 아래 */
+        .header-container { 
+            text-align: center; 
+            padding: 12px 0; 
+            background: linear-gradient(145deg, #0d2a0d, #051405); 
+            border: 2px solid var(--nh-gold); 
+            border-radius: 8px; 
+            flex-shrink: 0; 
+            display: flex;
+            flex-direction: column;
+            gap: 0px; /* 위아래 바짝 붙임 */
+        }
+        
+        .header-title { font-size: 2.1rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.2; }
+        .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.2rem; letter-spacing: 1px; margin-top: -2px; }
 
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
@@ -40,20 +53,15 @@
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
         
-        /* 아이콘 필터 */
         .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
         .cloud-icon { display: inline-block; font-size: 1.35rem; font-style: normal; filter: brightness(1.2) contrast(1.1) drop-shadow(1px 1px 2px rgba(255,255,255,0.4)); -webkit-text-fill-color: white; }
         .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
 
-        /* [수정] 바람 및 미세먼지 색상 적용 */
         .we-row-3 { font-size: 0.75rem; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
-        .c-wind { display: inline; }
-        .c-dust { display: inline; margin-left: 2px; }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 팝업 모달 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -67,8 +75,8 @@
 <body>
 
     <div class="header-container">
-        <div id="year-title" class="year-text" style="color:var(--nh-gold); font-weight:bold; font-size:1rem;"></div>
         <div class="header-title">부평농협 둘레길 산악회</div>
+        <div id="year-title" class="year-text"></div>
     </div>
 
     <div class="calendar-container">
@@ -95,7 +103,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_color_final_v1';
+        const storageKey = 'dure_final_order_v2';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -112,8 +120,11 @@
 
             let html = '';
             dayNames.forEach((d, i) => html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
+            
+            // 이전 달 날짜 채우기 (슬래시 완전 제거)
             for (let i = firstDayIdx; i > 0; i--) html += `<div class="cal-day other-month"><div class="day-num-text">${prevLastDate - i + 1}</div></div>`;
 
+            // 이번 달 날짜
             for (let d = 1; d <= lastDate; d++) {
                 const dayIdx = new Date(year, month, d).getDay();
                 const dayData = data[d] || { events: [], weather: {} };
@@ -125,11 +136,9 @@
                 if(we.state) {
                     if(we.state.includes('비')) weatherIcon = '<i class="umbrella-icon">☔</i>';
                     else if(we.state.includes('흐림')) weatherIcon = '<i class="cloud-icon">☁️</i>';
-                    else if(we.state.includes('맑음')) weatherIcon = '☀️';
-                    else if(we.state.includes('눈')) weatherIcon = '❄️';
+                    else weatherIcon = we.state.split(' ')[0];
                 }
 
-                // [수정] 색상 로직 적용
                 let windColor = we.wind === '강풍' ? 'var(--wind-strong)' : 'var(--wind-mild)';
                 let dustColor = we.dust === '나쁨' ? 'var(--dust-bad)' : 'var(--dust-good)';
 
@@ -141,8 +150,8 @@
                                 <div class="we-row-1">${we.low ? we.low+'/'+we.high : ''}</div>
                                 <div class="we-row-2">${weatherIcon} <span class="pop-text">${we.pop || ''}</span></div>
                                 <div class="we-row-3">
-                                    <span class="c-wind" style="color:${windColor}">${we.wind||''}</span>
-                                    <span class="c-dust" style="color:${dustColor}">${we.dust||''}</span>
+                                    <span style="color:${windColor}">${we.wind||''}</span>
+                                    <span style="color:${dustColor}">${we.dust||''}</span>
                                 </div>
                             </div>
                         </div>
@@ -154,6 +163,7 @@
             container.innerHTML = html;
         }
 
+        // [기타 제어 함수들은 동일하게 유지]
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
@@ -167,7 +177,6 @@
             localStorage.setItem(storageKey, JSON.stringify(data));
             wCount++; renderCalendar();
         }
-
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정 관리"; document.getElementById('input-modal').style.display = 'flex'; resetForm(); };
         window.saveData = function(isUpdate) {
             const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
@@ -199,3 +208,12 @@
                     updateUI();
                 };
                 box.appendChild(btn);
+            }
+        }
+        function updateUI() { document.querySelectorAll('.time-btn').forEach((b, i) => { b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid gold' : 'none'; }); }
+        window.deleteSpecific = function() { if(editingIndex === -1) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIndex, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); resetForm(); };
+        window.closeModal = function() { document.getElementById('input-modal').style.display='none'; };
+        window.onload = renderCalendar;
+    </script>
+</body>
+</html>
