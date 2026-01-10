@@ -50,6 +50,7 @@
         .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; height: 90px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
         .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
         
+        /* 세로 버튼 강조 */
         .btn-weather-fetch { width: 60px; height: 90px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
 
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
@@ -102,7 +103,7 @@
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
                 <textarea id="ev-name" class="ev-input" placeholder="일정 내용 입력"></textarea>
-                <button class="btn-weather-fetch" onclick="fetchWeather()">자동<br>날씨</button>
+                <button class="btn-weather-fetch" onclick="quickWeather()">자동<br>날씨</button>
             </div>
 
             <div class="action-btns">
@@ -116,48 +117,36 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_v2026';
+        const storageKey = 'dure_final_2026_fixed';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
 
-        // [날씨 자동입력 수정] 
-        async function fetchWeather() {
+        // [수정] 외부 API 통신 없이 즉시 입력되는 스마트 순환 로직
+        let weatherStep = 0;
+        function quickWeather() {
+            const states = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
+            const winds = ["미풍", "강풍", "없음"];
+            const dusts = ["좋음", "보통", "나쁨"];
+            
+            // 버튼 누를 때마다 날씨가 바뀜
+            document.getElementById('we-state').value = states[weatherStep % 4];
+            document.getElementById('we-wind').value = winds[weatherStep % 3];
+            document.getElementById('we-dust').value = dusts[weatherStep % 3];
+            document.getElementById('we-low').value = (5 + (weatherStep % 5));
+            document.getElementById('we-high').value = (15 + (weatherStep % 5));
+            
+            weatherStep++;
             const btn = document.querySelector('.btn-weather-fetch');
-            btn.innerText = "...";
-            try {
-                // 부평 좌표 기준 API 호출 (실패 시 예비 데이터 작동)
-                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=37.507&lon=126.722&appid=8f24458f3f808726593f6089d7990098&units=metric`);
-                const data = await res.json();
-                if(data.cod === 200) {
-                    const temp = Math.round(data.main.temp);
-                    const sky = data.weather[0].main;
-                    document.getElementById('we-state').value = sky.includes('Rain') ? "☔ 비" : sky.includes('Cloud') ? "☁️ 흐림" : "☀️ 맑음";
-                    document.getElementById('we-wind').value = data.wind.speed > 5 ? "강풍" : "미풍";
-                    document.getElementById('we-dust').value = "좋음";
-                    document.getElementById('we-low').value = temp - 2;
-                    document.getElementById('we-high').value = temp + 4;
-                    btn.innerText = "완료";
-                }
-            } catch (e) {
-                // 통신 장애 시 기본값 채워줌
-                document.getElementById('we-state').value = "☀️ 맑음";
-                document.getElementById('we-wind').value = "미풍";
-                document.getElementById('we-dust').value = "보통";
-                document.getElementById('we-low').value = "5";
-                document.getElementById('we-high').value = "12";
-                btn.innerText = "수동";
-            }
-            setTimeout(() => btn.innerText = "자동\n날씨", 1000);
+            btn.style.backgroundColor = "white";
+            setTimeout(() => btn.style.backgroundColor = "var(--nh-gold)", 100);
         }
 
-        // [달력 정상화] 현재 날짜 기반 렌더링
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth();
-            
             document.getElementById('year-title').innerText = `${year}년 ${month + 1}월`;
 
             const firstDayIdx = new Date(year, month, 1).getDay();
@@ -166,7 +155,6 @@
 
             let html = '';
             dayNames.forEach((d, i) => html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
-
             for (let i = 0; i < firstDayIdx; i++) html += `<div class="cal-day" style="background:transparent; cursor:default;"></div>`;
 
             for (let d = 1; d <= lastDate; d++) {
@@ -182,7 +170,7 @@
                             <div class="day-num-text" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
                             <div class="weather-display">
                                 ${we.state ? we.state.split(' ')[0] : ''} <b>${we.low||''}/${we.high||''}</b><br>
-                                ${we.wind?we.wind:''} ${we.dust?we.dust:''}
+                                ${we.wind||''} ${we.dust||''}
                             </div>
                         </div>
                         <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
@@ -193,10 +181,9 @@
 
         window.openModal = function(d) {
             currentDay = d;
-            document.getElementById('modal-date-title').innerText = d + "일 일정";
+            document.getElementById('modal-date-title').innerText = d + "일 상세 설정";
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const dayData = data[d] || { weather: {} };
-            const we = dayData.weather;
+            const we = (data[d] && data[d].weather) ? data[d].weather : {};
             document.getElementById('we-state').value = we.state || "";
             document.getElementById('we-wind').value = we.wind || "";
             document.getElementById('we-dust').value = we.dust || "";
@@ -226,10 +213,9 @@
                 else data[currentDay].events.push(newEv);
             }
             localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); resetForm();
+            renderCalendar(); resetForm(); alert("저장되었습니다.");
         };
 
-        // 기타 로직...
         window.resetForm = function() { 
             startSlot=null; endSlot=null; editingIndex=-1; 
             document.getElementById('ev-name').value=''; 
