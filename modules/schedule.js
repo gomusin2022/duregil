@@ -1,14 +1,17 @@
-// [일정 관리 모듈] - 산악회, 기타교실, 범방위, 기타사항 통합 관리 (달력 포함)
+// [일정 관리 모듈] - 산악회, 기타교실, 범방위, 기타사항 통합 관리 (전체 소스)
 export function initSchedule() {
     const display = document.getElementById('main-display');
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
     
-    // 화면 UI 그리기
+    // 화면 UI 그리기 (달력 + 입력창 통합)
     display.innerHTML = `
         <div style="padding:15px; width:100%; height:100%; overflow-y:auto; box-sizing:border-box; background:#181818;">
-            <h3 style="color:#f39c12; margin-top:0;">📅 ${year}년 ${month + 1}월 일정</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="color:#f39c12; margin:0;">📅 ${year}년 ${month + 1}월 일정</h3>
+                <button onclick="location.reload()" style="background:#444; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">닫기</button>
+            </div>
             
             <div id="calendar-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:#444; border:1px solid #444; margin-bottom:20px;">
                 ${['일','월','화','수','목','금','토'].map(d => `<div style="background:#222; padding:5px; text-align:center; font-size:0.7rem; color:#888;">${d}</div>`).join('')}
@@ -39,36 +42,31 @@ export function initSchedule() {
 
             <h4 style="color:var(--text-silver);">저장된 일정 목록</h4>
             <ul id="event-list" style="list-style:none; padding:0; margin:0;"></ul>
-            
-            <button onclick="location.reload()" 
-                style="margin-top:20px; width:100%; padding:10px; background:#444; color:white; border:none; border-radius:5px; cursor:pointer;">
-                메인화면으로 돌아가기
-            </button>
         </div>
     `;
 
     renderEvents();
 }
 
-// [기능 1: 달력 날짜 생성]
+// [보조 기능: 달력 날짜 생성 로직]
 function generateCalendarDays(year, month) {
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
     let days = '';
-    const events = JSON.parse(localStorage.getItem('duregil_events') || '[]');
+    const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
 
     for (let i = 0; i < firstDay; i++) days += `<div style="background:#181818; padding:15px;"></div>`;
     for (let d = 1; d <= lastDate; d++) {
         const dayEvs = events.filter(e => parseInt(e.date) === d);
         const dots = dayEvs.map(e => `<span style="display:inline-block; width:5px; height:5px; background:${e.type}; border-radius:50%; margin:1px;"></span>`).join('');
-        days += `<div style="background:#222; min-height:35px; padding:2px; font-size:0.7rem; border:1px solid #181818;">
+        days += `<div style="background:#222; min-height:40px; padding:2px; font-size:0.75rem; border:1px solid #181818;">
                     ${d}<br><div style="display:flex; flex-wrap:wrap; justify-content:center;">${dots}</div>
                  </div>`;
     }
     return days;
 }
 
-// [기능 2: 일정 저장]
+// [보조 기능: 일정 저장 및 화면 갱신]
 window.saveEvent = function() {
     const name = document.getElementById('event-name').value;
     const type = document.getElementById('event-type').value;
@@ -77,19 +75,17 @@ window.saveEvent = function() {
 
     if (!name || !date) return alert("행사명과 날짜를 모두 입력해주세요!");
 
-    const events = JSON.parse(localStorage.getItem('duregil_events') || '[]');
+    const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
     events.push({ id: Date.now(), name, type, typeText, date });
-    localStorage.setItem('duregil_events', JSON.stringify(events));
+    localStorage.setItem('dure_evs', JSON.stringify(events));
     
-    document.getElementById('event-name').value = '';
-    document.getElementById('event-date').value = '';
-    initSchedule(); // 화면 전체 갱신 (달력+목록)
+    initSchedule(); // 달력과 목록 즉시 업데이트
 };
 
-// [기능 3: 목록 그리기]
+// [보조 기능: 하단 목록 렌더링]
 function renderEvents() {
     const list = document.getElementById('event-list');
-    const events = JSON.parse(localStorage.getItem('duregil_events') || '[]');
+    const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
     
     if (events.length === 0) {
         list.innerHTML = `<p style="color:#666; font-size:0.8rem; text-align:center;">등록된 일정이 없습니다.</p>`;
@@ -107,11 +103,11 @@ function renderEvents() {
     `).join('');
 }
 
-// [기능 4: 일정 삭제]
+// [보조 기능: 일정 삭제]
 window.deleteEvent = function(id) {
     if(!confirm("이 일정을 삭제하시겠습니까?")) return;
-    let events = JSON.parse(localStorage.getItem('duregil_events') || '[]');
+    let events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
     events = events.filter(ev => ev.id !== id);
-    localStorage.setItem('duregil_events', JSON.stringify(events));
+    localStorage.setItem('dure_evs', JSON.stringify(events));
     initSchedule();
 };
