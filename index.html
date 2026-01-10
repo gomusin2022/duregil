@@ -35,7 +35,6 @@
         
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
 
-        /* [추가] 라디오 버튼 활성화 효과 (유아이 파괴 없이 상태만 표시) */
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
     </style>
@@ -66,8 +65,8 @@
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
-                <button id="save-btn" onclick="saveData()" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
+                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">완료</button>
+                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">저장</button>
                 <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
                 <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
                 <button id="mode-del" onclick="changeRadioMode('del')" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
@@ -78,9 +77,6 @@
     <div id="map-overlay">
         <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:20px; text-align:center;">날씨 위치 설정</div>
         <input type="text" id="loc-search" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="장소 입력">
-        <div style="flex:1; background:#111; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#555; text-align:center; padding:20px;">
-            한글 지역명을 입력하고 [위치확정]을 누르세요.
-        </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button onclick="confirmLocation()" style="flex:1; padding:15px; background:var(--nh-gold); font-weight:bold; border:none; border-radius:8px;">위치확정 및 복귀</button>
             <button onclick="document.getElementById('map-overlay').style.display='none'" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button>
@@ -91,38 +87,33 @@
         const storageKey = 'nh_weather_final_v8';
         const apiKey = 'b1eb3292419409f920f69d35c59f0f90';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; // 'add', 'edit', 'del'
+        let currentMode = 'add'; 
 
-        // [라디오 모드 변경]
         function changeRadioMode(mode) {
             currentMode = mode;
-            // 버튼 상태 시각화
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
             document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
 
             if(mode === 'add') resetForm();
-            else initTime(); // 모드 전환 시 시간 버튼 새로고침
+            else initTime(); 
         }
 
         async function getRealWeather() {
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const targetLoc = data[currentDay]?.weather?.location;
             if(!targetLoc) return alert("지역선택을 먼저 해주세요!");
-            const btn = document.getElementById('fetch-btn');
-            btn.innerText = "조회중..";
             const cityMap = { "인천": "Incheon", "서울": "Seoul", "부평": "Incheon" };
             const query = cityMap[targetLoc] || targetLoc;
             try {
                 const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apiKey}&units=metric`);
                 const w = await res.json();
                 if(w.cod !== 200) throw new Error();
-                const newWeather = { location: targetLoc, low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max), pop: w.main.humidity + "%", state: "☀️" };
                 if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-                data[currentDay].weather = newWeather;
+                data[currentDay].weather = { location: targetLoc, low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max), pop: w.main.humidity + "%", state: "☀️" };
                 localStorage.setItem(storageKey, JSON.stringify(data));
-                renderCalendar(); btn.innerText = "완료"; setTimeout(()=> btn.innerHTML = "자동<br>날씨", 1000);
-            } catch(e) { alert("조회 실패. 영문 지명을 시도해보세요."); btn.innerHTML = "자동<br>날씨"; }
+                renderCalendar();
+            } catch(e) { alert("날씨 조회 실패"); }
         }
 
         function confirmLocation() {
@@ -139,7 +130,7 @@
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const now = new Date(); const year = 2026, month = 0;
+            const year = 2026, month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
             const firstIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month+1, 0).getDate();
@@ -169,9 +160,7 @@
         }
 
         window.saveData = function() {
-            if(currentMode === 'del') {
-                deleteData(); return;
-            }
+            if(currentMode === 'del') { deleteData(); return; }
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -179,22 +168,16 @@
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const ev = { name, start: s, end: e, color: selectedColor };
-            
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
             else (data[currentDay].events = data[currentDay].events || []).push(ev);
-            
             localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar();
-            const sBtn = document.getElementById('save-btn');
-            sBtn.innerText = "저장완료";
-            sBtn.style.background = "var(--nh-green)";
-            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; changeRadioMode('add'); }, 700);
+            renderCalendar(); changeRadioMode('add');
         };
 
         window.openModal = function(d) {
             currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
             document.getElementById('input-modal').style.display = 'flex';
-            changeRadioMode('add'); // 항상 추가 모드로 시작
+            changeRadioMode('add');
         };
 
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
@@ -202,14 +185,13 @@
         window.resetForm = function() { 
             startSlot=null; endSlot=null; editingIdx=-1; 
             document.getElementById('ev-name').value=''; 
-            document.getElementById('save-btn').innerText = "저장";
             initPalette(); initTime(); 
         };
 
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
+                const d = document.createElement('div'); d.style.background = c;
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
                 d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); }; p.appendChild(d);
             });
@@ -223,28 +205,20 @@
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
                 const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
-                
                 if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
                 else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; }
-
-                // [라디오 모드별 빈 칸 클릭 제어]
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
-
                 b.onclick = () => {
-                    // 수정/삭제 모드일 때 기존 일정 클릭
                     if(currentMode !== 'add' && otherEvIdx !== -1) { 
                         editingIdx = otherEvIdx; const e = evs[otherEvIdx];
                         startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                         document.getElementById('ev-name').value = e.name;
                         initPalette(); initTime(); return;
                     }
-                    
-                    // 수정 모드 중 내 일정 시간 변경 허용 / 추가 모드일 때 빈 칸 클릭
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
-                        if(otherEvIdx !== -1) return; // 다른 일정 영역은 클릭 불가
+                        if(otherEvIdx !== -1) return;
                         if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
                     }
-                    
                     document.querySelectorAll('#time-picker div').forEach((btn, idx) => {
                         const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
                         const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
