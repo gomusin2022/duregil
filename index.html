@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 가독성 강화판</title>
+    <title>부평농협 둘레길 산악회 - 정밀 정렬판</title>
     <style>
         :root {
             --bg-dark: #121212;
             --metal-gray: #2c2c2c;
             --metal-bright: #4a4a4a;
             --text-silver: #d1d1d1;
-            --sat-blue: #4da6ff;  /* 토요일 하늘색 */
-            --sun-red: #ff4d4d;   /* 일요일/공휴일 빨간색 */
+            --sat-blue: #4da6ff;
+            --sun-red: #ff4d4d;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
@@ -22,14 +22,30 @@
         
         .cal-day { background: #222; min-height: 105px; padding: 8px; cursor: pointer; border: 1px solid #181818; display: flex; flex-direction: column; justify-content: flex-start; }
         
-        /* 날짜 숫자 크기 키우기 및 요일 스타일 */
-        .day-header { font-size: 1.3rem; font-weight: 900; margin-bottom: 8px; }
-        .day-name { font-size: 0.9rem; font-weight: normal; margin-left: 2px; }
+        /* [수정 핵심] 날짜와 요일을 동일한 높이(기준선)로 정렬 */
+        .day-header { 
+            display: flex; 
+            align-items: baseline; /* 글자의 하단 기준선을 일치시킴 */
+            gap: 4px; /* 숫자와 요일 사이 간격 */
+            margin-bottom: 8px;
+        }
+        
+        .day-num-text { 
+            font-size: 1.5rem; /* 숫자 크기 유지 혹은 약간 키움 */
+            font-weight: 900; 
+            line-height: 1; /* 줄높이 제거로 위치 틀어짐 방지 */
+        }
+        
+        .day-name { 
+            font-size: 1rem; /* 요일 글씨 크기도 숫자에 맞춰 살짝 조정 */
+            font-weight: bold;
+            line-height: 1;
+        }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 35px; background: #333; border-radius: 3px; overflow: hidden; margin-top: auto; }
         .slot { background: #2d2d2d; height: 100%; }
 
-        /* 팝업 스타일 생략 (기존 로직 유지) */
+        /* 팝업 및 기타 스타일 (기존 유지) */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #252525; width: 95%; max-width: 500px; padding: 20px; border-radius: 15px; border: 2px solid var(--metal-bright); box-shadow: 0 0 50px #000; }
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 5px; }
@@ -46,7 +62,7 @@
 </head>
 <body>
 
-    <div class="header">부평농협 둘레길 산악회 스케줄</div>
+    <div class="header">부평농협 둘레길 산악회 일정관리</div>
     <div class="calendar-container" id="main-calendar"></div>
 
     <div id="input-modal">
@@ -55,7 +71,7 @@
             <div class="range-picker" id="time-range-box"></div>
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="내용 입력"></textarea>
+                <textarea id="ev-name" class="ev-input" placeholder="산행 내용 입력"></textarea>
             </div>
             <div class="action-btns">
                 <div class="btn" style="background:#444" onclick="resetForm()">추가</div>
@@ -68,16 +84,10 @@
     </div>
 
     <script>
-        const storageKey = 'dure_v11_final';
+        const storageKey = 'dure_v12_final';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = '#ff4d4d';
-
-        // 공휴일 체크 로직 (예시: 1월 1일, 1월 30일(설날 등))
-        function isHoliday(day) {
-            const holidays = [1]; // 1월 1일 등 (실무에선 여기에 날짜 추가)
-            return holidays.includes(day);
-        }
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
@@ -101,11 +111,8 @@
             for (let d = 1; d <= lastDate; d++) {
                 const dateObj = new Date(year, month, d);
                 const dayIdx = dateObj.getDay();
-                const holiday = isHoliday(d);
-
-                // 요일 색상 결정
                 let dayColor = '#fff';
-                if (dayIdx === 0 || holiday) dayColor = 'var(--sun-red)';
+                if (dayIdx === 0) dayColor = 'var(--sun-red)';
                 else if (dayIdx === 6) dayColor = 'var(--sat-blue)';
 
                 const dayEvs = events[d] || [];
@@ -115,7 +122,8 @@
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
                         <div class="day-header" style="color:${dayColor}">
-                            ${d}<span class="day-name">(${dayNames[dayIdx]})</span>
+                            <span class="day-num-text">${d}</span>
+                            <span class="day-name">(${dayNames[dayIdx]})</span>
                         </div>
                         <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
                     </div>`;
@@ -123,7 +131,7 @@
             container.innerHTML = html + `</div>`;
         }
 
-        // 기존 팝업 및 저장 로직은 유지하되 UI 호출만 연결
+        // [이하 기존 로직 유지]
         window.openModal = function(d) {
             currentDay = d;
             const dateObj = new Date(new Date().getFullYear(), new Date().getMonth(), d);
@@ -131,13 +139,7 @@
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
-
-        window.resetForm = function() { 
-            startSlot=null; endSlot=null; editingIndex=-1; 
-            document.getElementById('ev-name').value=''; 
-            initPalette(); initTimePicker(); 
-        };
-        
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; initPalette(); initTimePicker(); };
         function initPalette() {
             const pal = document.getElementById('color-palette'); pal.innerHTML = '';
             colors9.forEach(c => {
@@ -146,7 +148,6 @@
                 pal.appendChild(div);
             });
         }
-
         function initTimePicker() {
             const box = document.getElementById('time-range-box'); box.innerHTML = '';
             const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -165,16 +166,9 @@
                 box.appendChild(btn);
             }
         }
-
-        function updateUI() {
-            document.querySelectorAll('.time-btn').forEach((b, i) => {
-                b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid white' : 'none';
-            });
-        }
-
+        function updateUI() { document.querySelectorAll('.time-btn').forEach((b, i) => { b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid white' : 'none'; }); }
         window.saveData = function(isUpdate) {
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("입력 오류");
+            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
             const end = endSlot === null ? startSlot : endSlot;
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!events[currentDay]) events[currentDay] = [];
@@ -182,20 +176,9 @@
             if(overlap) return alert("시간 중복");
             const data = { name, start: startSlot, end, color: selectedColor };
             if(isUpdate) events[currentDay][editingIndex] = data; else events[currentDay].push(data);
-            localStorage.setItem(storageKey, JSON.stringify(events));
-            renderCalendar(); resetForm();
+            localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm();
         };
-
-        window.deleteSpecific = function() {
-            if(editingIndex === -1) return;
-            if(confirm("삭제하시겠습니까?")) {
-                let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
-                events[currentDay].splice(editingIndex, 1);
-                localStorage.setItem(storageKey, JSON.stringify(events));
-                renderCalendar(); resetForm();
-            }
-        };
-
+        window.deleteSpecific = function() { if(editingIndex === -1) return; if(confirm("삭제하시겠습니까?")) { let events = JSON.parse(localStorage.getItem(storageKey) || '{}'); events[currentDay].splice(editingIndex, 1); localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm(); } };
         window.closeModal = function() { document.getElementById('input-modal').style.display='none'; };
         window.onload = renderCalendar;
     </script>
