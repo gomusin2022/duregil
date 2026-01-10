@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 기상 시인성 강화</title>
+    <title>부평농협 둘레길 산악회 - 고화질 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -12,7 +12,8 @@
             --text-silver: #f0f0f0;
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
-            --rain-blue: #00d4ff; /* 목표 색상: 하늘색 */
+            --rain-blue: #00d4ff;
+            --cloud-silver: #e0e0e0; /* 구름용 실버 색상 */
             --metal-button: #2a2a2a;
         }
 
@@ -30,41 +31,42 @@
 
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
 
-        /* 날씨 3단 레이아웃 */
+        /* [수정] 날씨 레이아웃 및 커스텀 아이콘 효과 */
         .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
         
-        /* [핵심 수정] 우산 아이콘 색상 강제 필터 적용 */
+        /* 입체 우산 필터 */
         .umbrella-icon { 
-            display: inline-block;
-            font-size: 1.25rem; /* 크기 유지 및 약간 확대 */
-            font-style: normal;
-            /* 흑백 처리 후 하늘색(Rain Blue)으로 강제 변환하는 필터 */
+            display: inline-block; font-size: 1.25rem; font-style: normal;
             filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(500%) brightness(100%);
         }
-        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
 
+        /* [새로운 수정] 입체 구름 아이콘 필터 */
+        .cloud-icon {
+            display: inline-block; font-size: 1.25rem; font-style: normal;
+            /* 구름을 묵직한 메탈릭 실버로 변환하는 필터 */
+            filter: grayscale(100%) brightness(150%) contrast(120%) drop-shadow(1px 1px 1px #000);
+            color: var(--cloud-silver);
+        }
+
+        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
         .we-row-3 { font-size: 0.75rem; color: #bbb; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 입력 팝업 */
+        /* 모달 설정 동일 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
-        .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px; }
-        .time-btn { background: #1a2a1a; color: #555; padding: 10px 0; text-align: center; font-size: 0.7rem; cursor: pointer; border: none; }
-        .time-btn.selected { background: var(--nh-gold) !important; color: black !important; font-weight: bold; }
-        .input-row { display: flex; gap: 8px; margin-bottom: 15px; height: 85px; }
-        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; height: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
-        .c-dot { width: 100%; height: 100%; cursor: pointer; border-radius: 2px; }
-        .c-dot.active { border: 2px solid #fff; box-sizing: border-box; }
-        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
-        .btn-weather-fetch { width: 65px; height: 85px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; border: 1px solid #444; background: var(--metal-button); color: var(--text-silver); font-size: 0.85rem; }
+        /* 입력 행 동일 */
+        .input-row { display: flex; gap: 8px; margin-bottom: 15px; height: 85px; }
+        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; height: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
+        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
+        .btn-weather-fetch { width: 65px; height: 85px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -81,10 +83,10 @@
     <div id="input-modal">
         <div class="modal-content">
             <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 10px 0; font-size: 1.3rem;"></h3>
-            <div id="time-range-box" class="range-picker"></div>
+            <div id="time-range-box" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="산행 일정 입력"></textarea>
+                <textarea id="ev-name" class="ev-input" placeholder="일정 입력"></textarea>
                 <button class="btn-weather-fetch" onclick="quickWeatherAndSave()">자동<br>날씨</button>
             </div>
             <div class="action-btns">
@@ -98,7 +100,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_umbrella_fix_v1';
+        const storageKey = 'dure_final_pro_cloud_v1';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -125,7 +127,14 @@
                 let slots = Array(12).fill('#1a2a1a');
                 (dayData.events || []).forEach(ev => { for(let s=ev.start; s<=ev.end; s++) slots[s] = ev.color; });
 
-                const isRainy = (we.state && (we.state.includes('비') || we.state.includes('폭우')));
+                // 아이콘 선택 로직
+                let weatherIcon = '';
+                if(we.state) {
+                    if(we.state.includes('비')) weatherIcon = '<i class="umbrella-icon">☔</i>';
+                    else if(we.state.includes('흐림')) weatherIcon = '<i class="cloud-icon">☁️</i>';
+                    else if(we.state.includes('맑음')) weatherIcon = '☀️';
+                    else if(we.state.includes('눈')) weatherIcon = '❄️';
+                }
 
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
@@ -134,7 +143,7 @@
                             <div class="weather-display">
                                 <div class="we-row-1">${we.low ? we.low+'/'+we.high : ''}</div>
                                 <div class="we-row-2">
-                                    ${isRainy ? '<span class="umbrella-icon">☔</span>' : (we.state ? we.state.split(' ')[0] : '')}
+                                    ${weatherIcon}
                                     <span class="pop-text">${we.pop || ''}</span>
                                 </div>
                                 <div class="we-row-3">${we.wind||''} ${we.dust||''}</div>
@@ -149,6 +158,7 @@
             container.innerHTML = html;
         }
 
+        // 공통 로직 (저장, 삭제, 팔레트 등)
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
@@ -185,7 +195,7 @@
             dayEvs.forEach((ev, i) => { for(let s=ev.start; s<=ev.end; s++) slotData[s] = { color: ev.color, idx: i }; });
             for(let i=0; i<12; i++) {
                 const btn = document.createElement('div'); btn.className = 'time-btn'; btn.innerText = (i+6).toString().padStart(2, '0');
-                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:8px 0; text-align:center; font-size:0.75rem; cursor:pointer;`;
+                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:10px 0; text-align:center; font-size:0.75rem; cursor:pointer; border:none;`;
                 btn.onclick = () => {
                     if(slotData[i].idx !== -1) { editingIndex = slotData[i].idx; const ev = dayEvs[editingIndex]; startSlot = ev.start; endSlot = ev.end; document.getElementById('ev-name').value = ev.name; selectedColor = ev.color; initPalette(); }
                     else { if (startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { if (i < startSlot) { endSlot = startSlot; startSlot = i; } else { endSlot = i; } } }
