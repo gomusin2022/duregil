@@ -6,59 +6,46 @@
     <title>부평농협 둘레길 산악회 - 위치 기반 전산</title>
     <style>
         :root {
-            --bg-dark: #0a1a0a;
-            --nh-green: #006837;
-            --nh-gold: #d4af37;
-            --text-silver: #f0f0f0;
-            --sat-blue: #4da6ff;
-            --sun-red: #ff4d4d;
-            --rain-blue: #00d4ff;
-            --wind-mild: #f5f5dc; 
-            --wind-strong: #bf00ff;
-            --dust-good: #00ff00;
-            --dust-bad: #ff8000;
+            --bg-dark: #0a1a0a; --nh-green: #006837; --nh-gold: #d4af37; --text-silver: #f0f0f0;
+            --sat-blue: #4da6ff; --sun-red: #ff4d4d; --rain-blue: #00d4ff;
+            --wind-mild: #f5f5dc; --wind-strong: #bf00ff; --dust-good: #00ff00; --dust-bad: #ff8000;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
+        /* 헤더 섹션 */
         .header-container { text-align: center; padding: 12px 0 0 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
         .header-title { font-size: 2.1rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.1; }
         .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.25rem; margin-top: 15px; margin-bottom: 8px; line-height: 1; }
 
+        /* 달력 섹션 */
         .calendar-container { flex: 1; margin-top: 10px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; position: relative; z-index: 20; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
         .weekday-header { padding: 6px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
         .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; }
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
 
-        /* [핵심 수정] 날씨 4단 레이아웃 */
+        /* 날씨 4단 레이아웃 */
         .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
-        
-        /* 1단: 위치 (국장님 요청대로 맨 윗줄) */
-        .we-loc { font-size: 0.75rem; color: #fff; font-weight: bold; background: rgba(0, 104, 55, 0.5); padding: 0 2px; border-radius: 2px; margin-bottom: 1px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        
-        /* 2단: 최고/최저 */
+        .we-loc { font-size: 0.75rem; color: #fff; font-weight: bold; background: var(--nh-green); padding: 0 3px; border-radius: 2px; margin-bottom: 1px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .we-temp { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
-        
-        /* 3단: 아이콘/확률 */
         .we-main { font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 2px; }
-        .umbrella-icon { display: inline-block; font-size: 1.1rem; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
-        .cloud-icon { display: inline-block; font-size: 1.2rem; filter: brightness(1.2) contrast(1.1); -webkit-text-fill-color: #a0a0a0; }
-        .pop-text { color: var(--rain-blue); font-size: 0.8rem; }
-
-        /* 4단: 바람/먼지 */
         .we-sub { font-size: 0.7rem; white-space: nowrap; letter-spacing: -1.2px; font-weight: bold; }
 
+        /* 타임라인 */
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 10px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 버튼 및 입력창 */
-        .weather-btn-area { display: flex; flex-direction: column; width: 70px; gap: 4px; flex-shrink: 0; }
+        /* 입력 모달 및 버튼 */
+        #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
+        .weather-btn-area { display: flex; flex-direction: column; width: 75px; gap: 4px; flex-shrink: 0; }
         .btn-auto { flex: 2; background: var(--nh-gold); color: #000; font-weight: bold; border: 1px solid #fff; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
         .btn-loc { flex: 1; background: #fff; color: #006837; font-weight: bold; border: 1px solid var(--nh-gold); border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
-        #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
+        /* [추가] 지도 팝업 레이어 */
+        #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        #map-search-input { width: 100%; padding: 15px; font-size: 1.1rem; border-radius: 8px; border: none; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -77,13 +64,13 @@
             <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin-bottom:10px;"></h3>
             <div id="time-range-box" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
             
-            <div style="display: flex; gap: 8px; margin-bottom: 15px; height: 100px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 15px; height: 105px;">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0;" id="color-palette"></div>
-                <textarea id="ev-name" style="flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px;" placeholder="일정 및 장소 입력"></textarea>
+                <textarea id="ev-name" style="flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px;" placeholder="일정 제목을 입력하세요"></textarea>
                 
                 <div class="weather-btn-area">
                     <button class="btn-auto" onclick="cycleWeather()">자동<br>날씨</button>
-                    <button class="btn-loc" onclick="applyLocation()">위치<br>지정</button>
+                    <button class="btn-loc" onclick="openMapPicker()">위치<br>지정</button>
                 </div>
             </div>
 
@@ -97,17 +84,42 @@
         </div>
     </div>
 
+    <div id="map-overlay">
+        <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:15px; text-align:center;">행선지 장소 지정 (구글 지도)</div>
+        <input type="text" id="map-search-input" placeholder="산 이름이나 장소를 검색하세요 (예: 계양산)">
+        <div style="flex:1; background:#1a1a1a; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#555; border:1px dashed #444;">
+            [ 여기에 구글 지도가 표시됩니다 ]
+        </div>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button onclick="confirmMapLocation()" style="flex:1; padding:15px; background:var(--nh-gold); border:none; border-radius:8px; font-weight:bold;">이 위치로 확정</button>
+            <button onclick="closeMapPicker()" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button>
+        </div>
+    </div>
+
     <script>
-        const storageKey = 'dure_final_v4layer';
+        const storageKey = 'dure_final_v4layer_fixed';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
+
+        // 지도 팝업 관련
+        function openMapPicker() { document.getElementById('map-overlay').style.display = 'flex'; document.getElementById('map-search-input').focus(); }
+        function closeMapPicker() { document.getElementById('map-overlay').style.display = 'none'; }
+        function confirmMapLocation() {
+            const locName = document.getElementById('map-search-input').value;
+            if(!locName) return alert("장소를 입력해주세요.");
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+            data[currentDay].weather.location = locName;
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar();
+            closeMapPicker();
+        }
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const year = 2026; const month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month + 1}월`;
-
             const firstDayIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
             const prevLastDate = new Date(year, month, 0).getDate();
@@ -126,14 +138,10 @@
 
                 let weatherIcon = '';
                 if(we.state) {
-                    if(we.state.includes('비')) weatherIcon = '<i class="umbrella-icon">☔</i>';
-                    else if(we.state.includes('흐림')) weatherIcon = '<i class="cloud-icon">☁️</i>';
-                    else if(we.state.includes('눈')) weatherIcon = '❄️';
+                    if(we.state.includes('비')) weatherIcon = '☔';
+                    else if(we.state.includes('흐림')) weatherIcon = '☁️';
                     else weatherIcon = '☀️';
                 }
-
-                let windColor = we.wind === '강풍' ? 'var(--wind-strong)' : 'var(--wind-mild)';
-                let dustColor = we.dust === '나쁨' ? 'var(--dust-bad)' : 'var(--dust-good)';
 
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
@@ -142,10 +150,10 @@
                             <div class="weather-display">
                                 <div class="we-loc">${we.location || ''}</div>
                                 <div class="we-temp">${we.low ? we.low+'/'+we.high : ''}</div>
-                                <div class="we-main">${weatherIcon} <span class="pop-text">${we.pop || ''}</span></div>
+                                <div class="we-main">${weatherIcon} <span style="color:var(--rain-blue)">${we.pop || ''}</span></div>
                                 <div class="we-sub">
-                                    <span style="color:${windColor}">${we.wind||''}</span>
-                                    <span style="color:${dustColor}">${we.dust||''}</span>
+                                    <span style="color:${we.wind==='강풍'?'var(--wind-strong)':'var(--wind-mild)'}">${we.wind||''}</span>
+                                    <span style="color:${we.dust==='나쁨'?'var(--dust-bad)':'var(--dust-good)'}">${we.dust||''}</span>
                                 </div>
                             </div>
                         </div>
@@ -157,17 +165,6 @@
             container.innerHTML = html;
         }
 
-        /* [수정] 위치 지정 및 자동 날씨 통합 기능 */
-        window.applyLocation = function() {
-            const loc = document.getElementById('ev-name').value;
-            if(!loc) return alert("장소 이름을 먼저 입력하세요.");
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            data[currentDay].weather.location = loc;
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar();
-        };
-
         const weatherOptions = [
             { state: "☀️ 맑음", pop: "0%", low: 2, high: 12, wind: "미풍", dust: "좋음" },
             { state: "☁️ 흐림", pop: "20%", low: 4, high: 10, wind: "미풍", dust: "보통" },
@@ -178,16 +175,14 @@
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const loc = data[currentDay].weather.location || "";
-            data[currentDay].weather = { ...weatherOptions[weatherIdx % 3], location: loc };
-            weatherIdx++;
+            data[currentDay].weather = { ...weatherOptions[weatherIdx++ % 3], location: loc };
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar();
         };
 
-        /* 기본 로직 (모달, 저장 등) */
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정 관리"; document.getElementById('input-modal').style.display = 'flex'; resetForm(); };
         window.saveData = function(isUpdate) {
-            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
+            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("내용 입력!");
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const end = endSlot === null ? startSlot : endSlot; const newEv = { name, start: startSlot, end, color: selectedColor };
             if(isUpdate && editingIndex !== -1) data[currentDay].events[editingIndex] = newEv; else data[currentDay].events.push(newEv);
