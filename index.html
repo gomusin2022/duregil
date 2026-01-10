@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>부평농협 둘레길 산악회 - 관리자 시스템</title>
     <style>
-        /* [기본 테마 - 다크 메탈] */
+        /* [기본 테마 - 다크 메탈 원본 보존] */
         :root {
             --bg-dark: #121212;
             --metal-gray: #2c2c2c;
@@ -51,7 +51,7 @@
             overflow-y: auto;
         }
 
-        /* [메탈 버튼 시스템] */
+        /* [메탈 버튼 시스템 - 입체 디자인 원본] */
         .button-section {
             flex: 4;
             display: flex;
@@ -120,6 +120,7 @@
     </div>
 
     <script type="module">
+        // 폴더명과 파일명이 모두 소문자인지 확인하십시오 (modules/schedule.js)
         import { initMember } from './modules/member.js';
         import { initSchedule } from './modules/schedule.js';
 
@@ -128,7 +129,7 @@
             showSchedule: () => initSchedule()
         };
 
-        // 페이지 열리자마자 달력을 즉시 실행하도록 설정
+        // 페이지 열리자마자 달력을 즉시 실행
         window.onload = () => {
             if (typeof initSchedule === 'function') {
                 initSchedule();
