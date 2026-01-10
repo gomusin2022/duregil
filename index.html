@@ -22,10 +22,10 @@
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* [재수정] 국장님 요청: 타이틀은 위로, 연도는 아래 줄 쪽으로 밀착 */
+        /* [핵심 수정] 연도 표시의 위아래 '틈'을 황금 비율로 조정 */
         .header-container { 
             text-align: center; 
-            padding: 15px 0 2px 0; /* 아래쪽 패딩을 거의 없앰 */
+            padding: 15px 0 0 0; 
             background: linear-gradient(145deg, #0d2a0d, #051405); 
             border: 2px solid var(--nh-gold); 
             border-radius: 8px; 
@@ -47,15 +47,16 @@
         .year-text { 
             color: var(--nh-gold); 
             font-weight: bold; 
-            font-size: 1.2rem; 
+            font-size: 1.25rem; 
             letter-spacing: 1px; 
-            margin-top: 15px; /* 타이틀과는 거리를 둠 */
-            margin-bottom: -5px; /* 아래쪽 줄(달력) 쪽으로 바짝 내림 */
+            margin-top: 18px;    /* 타이틀과의 틈 (넉넉하게) */
+            margin-bottom: 8px; /* [중요] 달력 줄과의 틈 (적당히 띄움) */
+            line-height: 1;
         }
 
-        .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
+        .calendar-container { flex: 1; margin-top: 8px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
-        .weekday-header { padding: 5px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
+        .weekday-header { padding: 6px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
 
         .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; }
         .cal-day.other-month { background: #040c04; cursor: default; }
@@ -97,7 +98,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_v29_fixed';
+        const storageKey = 'dure_final_v31_perfect_gap';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -154,7 +155,6 @@
             container.innerHTML = html;
         }
 
-        // [이하 제어 로직들...]
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
