@@ -32,13 +32,25 @@
         .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; cursor: default; border: 1px solid #252525; border-radius: 4px; position: relative; }
 
         .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #444; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; font-size: 0.95rem; }
+        
+        /* [수정] 로케이션 버튼 전용 디자인 - 둥글게 보정 */
+        #loc-btn { 
+            background: #e0e0e0; 
+            color: #000; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            border-radius: 8px; 
+            border: 1px solid #999; 
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        #loc-btn:active { background: #bbb; transform: scale(0.95); }
+
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; font-weight: 800; }
         .del-confirm-active { background: #ff4d4d !important; color: #fff !important; animation: blink 1s infinite; }
         
         @keyframes blink { 50% { opacity: 0.6; } }
-
-        /* [수정] 금지 표시 대신 화살표 유지, 선명도 유지 */
         .time-btn.locked { cursor: default !important; }
         .time-btn.disabled { opacity: 0.3; cursor: default; }
     </style>
@@ -64,8 +76,8 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 <div class="side-btns" style="display: flex; flex-direction: column; width: 90px; gap: 6px;">
-                    <button class="metal-btn" onclick="alert('Syncing...')" style="flex: 2; font-size: 0.7rem;">SYNC DATA</button>
-                    <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border: none;">LOCATION</button>
+                    <button class="metal-btn" onclick="alert('Syncing...')" style="flex: 2; font-size: 0.7rem; border-radius: 8px;">SYNC DATA</button>
+                    <button id="loc-btn" onclick="openMap()" style="flex: 1;">LOCATION</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
@@ -79,7 +91,7 @@
 
     <div id="map-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; padding:20px; box-sizing:border-box;">
         <div id="map-container" style="width:100%; height:350px; border-radius:12px; border:1px solid #444; margin-bottom:20px;"></div>
-        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:18px; background:var(--accent-blue); color:white; font-weight:bold; border-radius:10px; font-size:1.1rem; border:none;">CONFIRM</button></div>
+        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:18px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px; font-size:1.1rem;">CONFIRM</button></div>
     </div>
 
     <script>
@@ -171,11 +183,10 @@
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
-                
                 if(foundIdx !== -1) {
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color; b.style.color = "#000";
                     if(isEditingThis) { b.style.outline = "2px solid #fff"; b.style.zIndex = "10"; }
-                    else b.classList.add('locked'); // [수정] 화살표 유지됨
+                    else b.classList.add('locked');
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
@@ -204,7 +215,6 @@
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const { data } = getStore();
             const evs = data[currentDay]?.events || [];
-
             btns.forEach((btn, idx) => { 
                 if(startSlot !== null && idx >= s && idx <= e) { 
                     btn.style.background = selectedColor; 
@@ -212,13 +222,8 @@
                     btn.style.zIndex = "10"; 
                 } else { 
                     const found = evs.find(ev => idx >= ev.start && idx <= ev.end);
-                    if (found && editingIdx === -1) {
-                        btn.style.background = found.color;
-                        btn.style.color = "#000";
-                    } else {
-                        btn.style.background = "#1a1a1a";
-                        btn.style.color = "#444";
-                    }
+                    if (found && editingIdx === -1) { btn.style.background = found.color; btn.style.color = "#000"; }
+                    else { btn.style.background = "#1a1a1a"; btn.style.color = "#444"; }
                     btn.style.outline = "none"; btn.style.zIndex = "1"; 
                 } 
             });
@@ -235,24 +240,21 @@
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1;
-            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
+            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
 
         function deleteData() { 
             const { key, data } = getStore();
             data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1;
-            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
+            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
         
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
-                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '28px'; d.style.borderRadius = '4px';
-                d.style.cursor = 'pointer';
+                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '28px'; d.style.borderRadius = '4px'; d.style.cursor = 'pointer';
                 d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; 
                 p.appendChild(d);
             });
