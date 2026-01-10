@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 정밀 전산</title>
+    <title>부평농협 둘레길 산악회 - 스마트 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -13,11 +13,10 @@
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
             --rain-blue: #00d4ff;
-            /* [수정] 국장님 요청: 미풍을 미색으로 변경 */
-            --wind-mild: #f5f5dc;  /* 미색 (Beige/Cream) */
-            --wind-strong: #bf00ff; /* 강풍: 보라 */
-            --dust-good: #00ff00;  /* 좋음: 녹색 */
-            --dust-bad: #ff8000;   /* 나쁨: 주황 */
+            --wind-mild: #f5f5dc; 
+            --wind-strong: #bf00ff;
+            --dust-good: #00ff00;
+            --dust-bad: #ff8000;
             --metal-button: #2a2a2a;
         }
 
@@ -63,18 +62,24 @@
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
         
-        /* 아이콘 필터 */
-        .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
-        .cloud-icon { display: inline-block; font-size: 1.35rem; font-style: normal; filter: brightness(1.2) contrast(1.1) drop-shadow(1px 1px 2px rgba(255,255,255,0.4)); -webkit-text-fill-color: white; }
-        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
+        /* [재교정] 입체적인 실버 그레이 구름 필터 */
+        .cloud-icon { 
+            display: inline-block; 
+            font-size: 1.35rem; 
+            font-style: normal; 
+            /* 촌스럽지 않은 메탈릭한 회색빛을 내기 위한 정밀 필터 */
+            filter: grayscale(100%) brightness(0.8) contrast(1.2) drop-shadow(1px 1px 1px rgba(0,0,0,0.8));
+            -webkit-text-fill-color: #a0a0a0; /* 세련된 중간 톤 회색 */
+        }
 
-        /* 하단 기상 정보 줄 */
+        .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
+        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
         .we-row-3 { font-size: 0.75rem; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
         
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 입력 모달 */
+        /* 입력 모달 (동일) */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -116,7 +121,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_v33_beigewind';
+        const storageKey = 'dure_final_v34_silvercloud';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
@@ -149,7 +154,6 @@
                     else weatherIcon = we.state.split(' ')[0];
                 }
 
-                /* [수정] 바람색은 국장님 요청대로 미색 적용 */
                 let windColor = we.wind === '강풍' ? 'var(--wind-strong)' : 'var(--wind-mild)';
                 let dustColor = we.dust === '나쁨' ? 'var(--dust-bad)' : 'var(--dust-good)';
 
@@ -174,7 +178,6 @@
             container.innerHTML = html;
         }
 
-        /* 제어 로직들 */
         let wCount = 0;
         function quickWeatherAndSave() {
             const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
