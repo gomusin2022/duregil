@@ -120,7 +120,6 @@
     </div>
 
     <script type="module">
-        // 폴더명과 파일명이 모두 소문자인지 확인하십시오 (modules/schedule.js)
         import { initMember } from './modules/member.js';
         import { initSchedule } from './modules/schedule.js';
 
@@ -129,7 +128,6 @@
             showSchedule: () => initSchedule()
         };
 
-        // 페이지 열리자마자 달력을 즉시 실행
         window.onload = () => {
             if (typeof initSchedule === 'function') {
                 initSchedule();
