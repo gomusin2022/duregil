@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 통합 전산</title>
+    <title>부평농협 둘레길 산악회 - 실시간 연동판</title>
     <style>
         :root {
             --bg-dark: #0a1a0a; --nh-green: #006837; --nh-gold: #d4af37; --text-silver: #f0f0f0;
@@ -20,23 +20,21 @@
         .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
         .day-num { font-size: 1.3rem; font-weight: 900; margin-bottom: 2px; }
 
-        /* 날씨 레이아웃 */
         .weather-box { display: flex; flex-direction: column; align-items: flex-end; font-size: 0.7rem; line-height: 1.1; font-weight: bold; }
         .w-loc { background: var(--nh-green); color: #fff; padding: 0 2px; border-radius: 2px; margin-bottom: 1px; }
         .w-temp { color: var(--nh-gold); }
+        .w-main { display: flex; align-items: center; gap: 2px; }
         
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 8px; background: #1a2a1a; margin-top: auto; border-radius: 2px; overflow: hidden; }
 
-        /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
         
-        .weather-btns { display: flex; flex-direction: column; width: 80px; gap: 5px; }
-        .btn-auto { flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: none; cursor: pointer; }
+        .weather-btns { display: flex; flex-direction: column; width: 85px; gap: 5px; }
+        .btn-auto { flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: none; cursor: pointer; font-size: 0.85rem; }
         .btn-loc { flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; overflow: hidden; }
 
-        .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border-radius: 2px; }
-        
+        .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; }
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
     </style>
 </head>
@@ -60,85 +58,65 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns">
-                    <button class="btn-auto" onclick="handleAutoWeather()">자동<br>날씨</button>
+                    <button class="btn-auto" id="weather-fetch-btn" onclick="fetchRealTimeWeather()">자동<br>날씨</button>
                     <button class="btn-loc" id="loc-display-btn" onclick="openMap()">지역선택</button>
                 </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="resetForm()" style="padding:10px 0; background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
-                <button id="save-btn" onclick="saveData(false)" style="padding:10px 0; background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
-                <button onclick="saveData(true)" style="padding:10px 0; background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
-                <button onclick="deleteData()" style="padding:10px 0; background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
-                <button onclick="closeModal()" style="padding:10px 0; background:none; color:var(--nh-gold); border:1px solid var(--nh-gold); border-radius:5px;">완료</button>
+                <button onclick="resetForm()" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
+                <button id="save-btn" onclick="saveData(false)" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
+                <button onclick="saveData(true)" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
+                <button onclick="deleteData()" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
+                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
             </div>
         </div>
     </div>
 
     <div id="map-overlay">
-        <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:20px; text-align:center;">장소 설정</div>
-        <input type="text" id="loc-input" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="예: 인천, 설악산, Incheon">
-        <div style="flex:1; border:1px dashed #444; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#666;">지도는 준비 중입니다.<br>지역명을 입력하세요.</div>
+        <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:20px; text-align:center;">실시간 날씨 위치 지정</div>
+        <input type="text" id="loc-input" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="한글 또는 영문 지역명 (예: 인천, 설악산, Seoul)">
+        <div style="flex:1; background:#111; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#555; text-align:center; padding:20px;">
+            실제 지도 데이터 연동 중입니다.<br><br>현재는 지명을 입력하고 [확인]을 누르면<br>해당 지역의 날씨 정보를 긁어옵니다.
+        </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="confirmLoc()" style="flex:1; padding:15px; background:var(--nh-gold); font-weight:bold; border:none; border-radius:8px;">확인 (복귀)</button>
+            <button onclick="confirmLoc()" style="flex:1; padding:15px; background:var(--nh-gold); font-weight:bold; border:none; border-radius:8px;">확인 및 복귀</button>
             <button onclick="closeMap()" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button>
         </div>
     </div>
 
     <script>
-        const storageKey = 'nh_dure_v5_final';
-        const weatherApiKey = 'b1eb3292419409f920f69d35c59f0f90';
+        const storageKey = 'nh_dure_v6_realtime';
+        const weatherApiKey = 'b1eb3292419409f920f69d35c59f0f90'; // 테스트용 실시간 키
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let tempLocation = ""; // 지역 임시 저장
 
-        // 1. 저장 로직 (저장 후 추가모드 자동전환)
-        window.saveData = function(isUpdate) {
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("시간과 내용을 입력해주세요.");
-
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
-            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            const newEv = { name, start: s, end: e, color: selectedColor };
-
-            if(isUpdate && editingIdx !== -1) data[currentDay].events[editingIdx] = newEv;
-            else data[currentDay].events.push(newEv);
-
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar();
-
-            // 저장 피드백 및 추가모드 전환
-            const sBtn = document.getElementById('save-btn');
-            sBtn.innerText = "저장됨!"; sBtn.style.background = "var(--nh-green)";
-            setTimeout(() => {
-                sBtn.innerText = "저장"; sBtn.style.background = "#333";
-                if(!isUpdate) resetForm(); // 저장 후 즉시 다음 입력 대기
-            }, 700);
-        };
-
-        // 2. 자동날씨 로직 (경고 팝업 포함)
-        window.handleAutoWeather = async function() {
+        // [실시간 날씨 연동 엔진]
+        async function fetchRealTimeWeather() {
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const currentLoc = (data[currentDay]?.weather?.location) || tempLocation;
+            let targetLoc = data[currentDay]?.weather?.location;
 
-            if(!currentLoc || currentLoc === "지역선택") {
+            if(!targetLoc) {
                 alert("지역을 먼저 선택해주세요! (지역선택 버튼 클릭)");
                 return;
             }
 
-            const btn = event.target; btn.innerText = "조회중..";
+            // 한글 지명을 영문으로 변환하는 간단 매칭 (기상청 API 연동 전 단계)
+            const locMap = { "인천": "Incheon", "서울": "Seoul", "부산": "Busan", "설악산": "Sokcho", "계양산": "Incheon" };
+            const queryLoc = locMap[targetLoc] || targetLoc;
+
+            const btn = document.getElementById('weather-fetch-btn');
+            btn.innerText = "조회중..";
+            
             try {
-                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${currentLoc}&appid=${weatherApiKey}&units=metric`);
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${queryLoc}&appid=${weatherApiKey}&units=metric`);
                 const w = await res.json();
                 if(w.cod !== 200) throw new Error();
 
                 const sky = w.weather[0].main;
                 const newWe = {
-                    location: currentLoc,
+                    location: targetLoc,
                     low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max),
-                    pop: w.main.humidity + "%",
+                    pop: "습도 " + w.main.humidity + "%",
                     state: sky.includes('Rain') ? '☔ 비' : sky.includes('Clouds') ? '☁️ 흐림' : '☀️ 맑음'
                 };
 
@@ -146,35 +124,50 @@
                 data[currentDay].weather = newWe;
                 localStorage.setItem(storageKey, JSON.stringify(data));
                 renderCalendar();
-                btn.innerHTML = "자동<br>날씨";
+                btn.innerHTML = "조회완료";
+                setTimeout(()=> btn.innerHTML = "자동<br>날씨", 1000);
             } catch(e) {
-                alert("날씨 조회 실패. 영문 도시명을 사용해 보세요. (예: Incheon)");
+                alert("해당 지역의 날씨를 찾을 수 없습니다. (영문 지명을 시도해보세요)");
                 btn.innerHTML = "자동<br>날씨";
             }
-        };
+        }
 
-        // 3. 지역 설정 로직 (입력창 귀환)
-        window.openMap = function() { document.getElementById('map-overlay').style.display = 'flex'; };
-        window.closeMap = function() { document.getElementById('map-overlay').style.display = 'none'; };
+        // 지역 확정 로직
         window.confirmLoc = function() {
             const loc = document.getElementById('loc-input').value;
             if(!loc) return alert("지역명을 입력하세요.");
-            tempLocation = loc;
-            document.getElementById('loc-display-btn').innerText = loc;
             
-            // 데이터에 지역명만 선저장
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             data[currentDay].weather.location = loc;
             localStorage.setItem(storageKey, JSON.stringify(data));
             
-            closeMap(); // 자동으로 일정 입력창으로 귀환
+            document.getElementById('loc-display-btn').innerText = loc;
+            closeMap();
         };
 
-        // 기초 기능들
+        // 저장 로직 (연속 입력 모드)
+        window.saveData = function(isUpdate) {
+            const name = document.getElementById('ev-name').value;
+            if(!name || startSlot === null) return alert("시간과 내용을 입력하세요.");
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
+            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            const ev = { name, start: s, end: e, color: selectedColor };
+            if(isUpdate && editingIdx !== -1) data[currentDay].events[editingIdx] = ev;
+            else data[currentDay].events.push(ev);
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar();
+            const sBtn = document.getElementById('save-btn');
+            sBtn.innerText = "저장됨"; sBtn.style.background = "var(--nh-green)";
+            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; if(!isUpdate) resetForm(); }, 600);
+        };
+
+        // 렌더링 엔진
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const year = 2026, month = 0;
+            const now = new Date(); const year = 2026, month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
             const firstIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month+1, 0).getDate();
@@ -197,8 +190,8 @@
                         <div class="day-num" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
                         <div class="weather-box">
                             <div class="w-loc">${we.location || ''}</div>
-                            <div class="w-temp">${we.low ? we.low+'/'+we.high : ''}</div>
-                            <div>${we.state || ''} <span style="color:var(--rain-blue)">${we.pop || ''}</span></div>
+                            <div class="w-temp">${we.low !== undefined ? we.low+'/'+we.high : ''}</div>
+                            <div class="w-main">${we.state ? we.state.split(' ')[0] : ''} <span style="color:var(--rain-blue); font-size:0.6rem;">${we.pop || ''}</span></div>
                         </div>
                     </div>
                     <div class="time-bar">${barHtml}</div>
@@ -207,21 +200,19 @@
             container.innerHTML = html;
         }
 
+        // 모달 제어
         window.openModal = function(d) {
-            currentDay = d;
-            document.getElementById('modal-date-title').innerText = d + "일 일정 관리";
+            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            tempLocation = data[d]?.weather?.location || "지역선택";
-            document.getElementById('loc-display-btn').innerText = tempLocation;
+            document.getElementById('loc-display-btn').innerText = data[d]?.weather?.location || "지역선택";
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        window.resetForm = function() {
-            startSlot=null; endSlot=null; editingIdx=-1;
-            document.getElementById('ev-name').value = '';
-            initPalette(); initTime();
-        };
+        window.openMap = function() { document.getElementById('map-overlay').style.display = 'flex'; };
+        window.closeMap = function() { document.getElementById('map-overlay').style.display = 'none'; };
+
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
@@ -234,21 +225,16 @@
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
             for(let i=0; i<12; i++) {
-                const btn = document.createElement('div'); btn.className = 'time-btn'; btn.innerText = (i+6).toString().padStart(2,'0');
+                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const ev = evs.find(e => i>=e.start && i<=e.end);
-                if(ev) { btn.style.background = ev.color; btn.style.color = "#000"; }
-                btn.onclick = () => {
-                    const foundIdx = evs.findIndex(e => i>=e.start && i<=e.end);
-                    if(foundIdx !== -1) { 
-                        editingIdx = foundIdx; const e = evs[foundIdx];
-                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                        document.getElementById('ev-name').value = e.name; initPalette();
-                    } else {
-                        if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
-                    }
+                if(ev) { b.style.background = ev.color; b.style.color = "#000"; }
+                b.onclick = () => {
+                    const fIdx = evs.findIndex(e => i>=e.start && i<=e.end);
+                    if(fIdx !== -1) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; initPalette(); }
+                    else { if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; } }
                     updateTimeUI();
                 };
-                t.appendChild(btn);
+                t.appendChild(b);
             }
         }
         function updateTimeUI() {
@@ -259,14 +245,7 @@
                 b.style.outline = (startSlot !== null && i >= s && i <= e) ? '2px solid gold' : 'none';
             });
         }
-        window.deleteData = function() {
-            if(editingIdx === -1) return;
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); resetForm();
-        };
-
+        window.deleteData = function() { if(editingIdx === -1) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); resetForm(); };
         window.onload = renderCalendar;
     </script>
 </body>
