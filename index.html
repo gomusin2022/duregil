@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg-dark: #0a1a0a; --nh-green: #006837; --nh-gold: #d4af37; --text-silver: #f0f0f0;
-            --sat-blue: #4da6ff; --sun-red: #ff4d4d;
+            --sat-blue: #4da6ff; --sun-red: #ff4d4d; --rain-blue: #00d4ff;
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .header-container { text-align: center; padding: 10px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
@@ -30,15 +30,11 @@
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
 
-        /* 버튼 상태 스타일 */
-        .btn-mode { background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer; font-weight:bold; }
-        .radio-active { background: #555 !important; color: var(--nh-gold) !important; border: 1px solid var(--nh-gold) !important; }
-        .confirm-ready { background: var(--nh-gold) !important; color: #000 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
-        
-        @keyframes blink { 50% { opacity: 0.7; } }
+        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
-        .time-btn.disabled { opacity: 0.1; cursor: default; }
+        .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
+        @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
@@ -61,16 +57,17 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns" style="display: flex; flex-direction: column; width: 85px; gap: 5px;">
-                    <button class="btn-mode" onclick="alert('기상청 연동 준비중')" style="flex: 2; background: var(--nh-gold); color:#000;">자동 날씨</button>
-                    <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem;">지도연결</button>
+                    <button class="btn-auto" onclick="alert('기능 준비중')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
+                    <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지도연결</button>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; height: 45px;">
-                <button onclick="closeModal()" style="border:1px solid #777; background:none; color:#fff; border-radius:5px;">닫기</button>
-                <button id="mode-add" class="btn-mode" onclick="handleModeBtn('add')">추가</button>
-                <button id="mode-edit" class="btn-mode" onclick="handleModeBtn('edit')">수정</button>
-                <button id="mode-del" class="btn-mode" onclick="handleModeBtn('del')">삭제</button>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
+                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">완료</button>
+                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
+                <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
+                <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
+                <button id="mode-del" onclick="handleDelBtnClick()" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
             </div>
         </div>
     </div>
@@ -83,44 +80,23 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v10_auto';
+        const storageKey = 'nh_weather_final_v9_map';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; 
+        let currentMode = 'add'; let map, marker, ps;
 
-        // [핵심] 버튼 모드 핸들러
-        function handleModeBtn(targetMode) {
-            // 이미 선택된 상태에서 한 번 더 누르면 '확인(저장)'으로 작동
-            if (currentMode === targetMode) {
-                if (targetMode === 'del' && editingIdx !== -1) deleteData();
-                else if ((targetMode === 'add' || targetMode === 'edit') && startSlot !== null) saveData();
-                return;
-            }
-            // 모드 전환
-            currentMode = targetMode;
-            if (targetMode === 'add') resetForm();
-            updateButtonUI();
-            initTime();
+        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); ps = new kakao.maps.services.Places(); }
+        function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
+        function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
+        
+        function changeRadioMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
+            document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
+            document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
+            if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        function updateButtonUI() {
-            const btns = { add: document.getElementById('mode-add'), edit: document.getElementById('mode-edit'), del: document.getElementById('mode-del') };
-            
-            // 초기화
-            Object.values(btns).forEach(b => { b.classList.remove('radio-active', 'confirm-ready', 'del-confirm-active'); });
-            btns.add.innerText = "추가"; btns.edit.innerText = "수정"; btns.del.innerText = "삭제";
-
-            // 상태 입히기
-            if (currentMode === 'add') {
-                btns.add.classList.add('radio-active');
-                if (startSlot !== null) { btns.add.innerText = "추가확인"; btns.add.classList.add('confirm-ready'); }
-            } else if (currentMode === 'edit') {
-                btns.edit.classList.add('radio-active');
-                if (editingIdx !== -1) { btns.edit.innerText = "수정확인"; btns.edit.classList.add('confirm-ready'); }
-            } else if (currentMode === 'del') {
-                btns.del.classList.add('radio-active');
-                if (editingIdx !== -1) { btns.del.innerText = "삭제확인"; btns.del.classList.add('del-confirm-active'); }
-            }
-        }
+        function handleDelBtnClick() { if (currentMode !== 'del') changeRadioMode('del'); else if (editingIdx !== -1) deleteData(); }
 
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
@@ -135,22 +111,31 @@
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color;
                     b.style.color = "#000";
                     if(isEditingThis) { b.style.outline = "3px solid gold"; b.style.zIndex = "10"; }
-                    else if (currentMode !== 'add' && editingIdx !== -1) b.classList.add('locked');
+                    else if (currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked');
                     else if (currentMode === 'add') b.classList.add('locked');
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
-                    if(foundIdx !== -1 && currentMode !== 'add' && !isEditingThis) {
-                        editingIdx = foundIdx; const e = evs[foundIdx];
-                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                        document.getElementById('ev-name').value = e.name;
-                        updateButtonUI(); initPalette(); initTime(); return;
+                    // [교정 핵심] 수정 모드에서 블록 선택 로직
+                    if(foundIdx !== -1 && currentMode !== 'add') {
+                        // 내가 지금 수정 중인 블록이 아닐 때만 '대상 선택'으로 작동
+                        if(!isEditingThis) {
+                            editingIdx = foundIdx; const e = evs[foundIdx];
+                            startSlot = e.start; endSlot = e.end; selectedColor = e.color;
+                            document.getElementById('ev-name').value = e.name;
+                            initPalette(); initTime(); return;
+                        }
+                        // 내가 수정 중인 블록 내부를 클릭했다면? 아래 범위 선택 로직으로 통과!
                     }
+                    
+                    // 범위 선택 로직 (추가 모드거나, 수정 모드에서 대상을 이미 정했을 때)
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
+                        // 남의 땅이면 클릭 무시
                         if(foundIdx !== -1 && !isEditingThis) return;
+                        
                         if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; }
                         else { endSlot = i; }
-                        updateTimeUI(); updateButtonUI();
+                        updateTimeUI();
                     }
                 };
                 t.appendChild(b);
@@ -163,14 +148,15 @@
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             btns.forEach((btn, idx) => {
                 if(startSlot !== null && idx >= s && idx <= e) {
-                    btn.style.background = selectedColor; btn.style.outline = "3px solid gold"; btn.style.zIndex = "10";
+                    btn.style.background = selectedColor;
+                    btn.style.outline = "3px solid gold"; btn.style.zIndex = "10";
                 } else { btn.style.outline = "none"; btn.style.zIndex = "1"; }
             });
         }
 
-        function saveData() {
+        window.saveData = function() {
             const name = document.getElementById('ev-name').value;
-            if(!name) return alert("일정 내용을 입력하세요.");
+            if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -181,18 +167,11 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); handleModeBtn('add');
-        }
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add');
+        };
 
-        function deleteData() { 
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); handleModeBtn('add');
-        }
+        window.deleteData = function() { let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
 
-        // 지도 및 달력 로직은 동일하게 유지...
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -205,9 +184,9 @@
             }
             container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
         }
-        function openModal(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; handleModeBtn('add'); }
-        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
-        function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); }
+        window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; changeRadioMode('add'); };
+        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
@@ -215,11 +194,6 @@
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        // 지도 관련 script (openMap, searchPlace, confirmMapLocation) 동일하게 유지...
-        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); ps = new kakao.maps.services.Places(); }
-        function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
-        function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
-
         window.onload = renderCalendar;
     </script>
 </body>
