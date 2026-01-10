@@ -243,4 +243,23 @@
                 const dayIdx = new Date(year, month, d).getDay();
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
-                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:
+                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
+            }
+            container.innerHTML = html;
+            document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
+        }
+        window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; changeRadioMode('add'); };
+        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
+        function initPalette() {
+            const p = document.getElementById('color-palette'); p.innerHTML = '';
+            ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
+                const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
+                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
+                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
+            });
+        }
+        window.onload = renderCalendar;
+    </script>
+</body>
+</html>
