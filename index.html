@@ -56,12 +56,11 @@
                     <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지도연결</button>
                 </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:5px; font-weight:bold; cursor:pointer;">닫기</button>
-                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
-                <button id="mode-add" onclick="handleModeBtn('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
-                <button id="mode-edit" onclick="handleModeBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
-                <button id="mode-del" onclick="handleModeBtn('del')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:8px; font-weight:bold; cursor:pointer; height:45px;">닫기</button>
+                <button id="mode-add" onclick="handleModeBtn('add')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">추가</button>
+                <button id="mode-edit" onclick="handleModeBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">수정</button>
+                <button id="mode-del" onclick="handleModeBtn('del')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">삭제</button>
             </div>
         </div>
     </div>
@@ -94,7 +93,6 @@
                 return;
             }
             currentMode = mode;
-            // 모드 전환 시 내용만 초기화 (강제 이동 없음)
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime(); 
@@ -181,7 +179,6 @@
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(storageKey, JSON.stringify(data)); 
             renderCalendar(); 
-            // [모드 유지] 현재 모드에서 데이터만 초기화하여 연속 작업 준비
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
@@ -192,7 +189,6 @@
             data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(storageKey, JSON.stringify(data)); 
             renderCalendar(); 
-            // [모드 유지] 삭제 후에도 현재 모드 유지
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
