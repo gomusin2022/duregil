@@ -9,113 +9,66 @@
             --bg-dark: #0a1a0a;
             --nh-green: #006837;
             --nh-gold: #d4af37;
-            --text-silver: #e0e0e0;
+            --text-silver: #f0f0f0; /* 더 밝은 실버 화이트 */
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
+            --metal-button: #2a2a2a; /* 짙은 메탈 컬러 */
+            --metal-hover: #3d3d3d;
         }
 
-        /* [핵심] 스크롤 원천 차단 및 전체 높이 고정 */
         body { 
             background-color: var(--bg-dark); 
             color: var(--text-silver); 
             font-family: 'Malgun Gothic', sans-serif; 
             margin: 0; padding: 5px; 
             display: flex; flex-direction: column; 
-            height: 100vh; /* 브라우저 높이에 딱 맞춤 */
-            box-sizing: border-box; 
-            overflow: hidden; 
+            height: 100vh; box-sizing: border-box; overflow: hidden; 
         }
 
-        /* [수정] 타이틀: 확실하게 크게(3rem), 하지만 세로 여백은 줄여서 공간 확보 */
         .header-container {
-            text-align: center;
-            padding: 8px 0;
+            text-align: center; padding: 8px 0;
             background: linear-gradient(145deg, #0d2a0d, #051405);
-            border: 2px solid var(--nh-gold);
-            border-radius: 8px;
-            flex-shrink: 0; /* 헤더 크기 고정 */
+            border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0;
         }
         
         .year-text { font-size: 1rem; color: var(--nh-gold); font-weight: bold; margin-bottom: 2px; }
+        .header-title { font-size: 3rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.1; }
 
-        .header-title { 
-            font-size: 3rem; /* 날짜(2rem)보다 확실히 큰 사이즈 */
-            font-weight: 900; 
-            color: var(--nh-gold); 
-            text-shadow: 2px 2px 4px #000;
-            margin: 0;
-            line-height: 1.1;
-        }
+        .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: var(--nh-green); }
+        .weekday-header { padding: 5px 0; text-align: center; font-size: 1.2rem; font-weight: 900; background: #082008; color: #fff; }
 
-        /* [수정] 달력 컨테이너: 남은 화면을 모두 차지하도록 flex 설정 */
-        .calendar-container { 
-            flex: 1; 
-            margin-top: 5px; 
-            display: flex; 
-            flex-direction: column; 
-            background: #051405; 
-            border: 1px solid var(--nh-green);
-            overflow: hidden;
-        }
+        .cal-day { background: #0a1a0a; padding: 5px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+        .day-num-text { font-size: 2rem; font-weight: 900; line-height: 1; }
 
-        .cal-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            grid-template-rows: auto repeat(6, 1fr); /* 요일줄 제외 6행 균등 배분 */
-            height: 100%;
-            gap: 1px; 
-            background: var(--nh-green); 
-        }
-        
-        .weekday-header { 
-            padding: 5px 0; 
-            text-align: center; 
-            font-size: 1.2rem; 
-            font-weight: 900; 
-            background: #082008; 
-            color: #fff;
-        }
-
-        /* [수정] 날짜 칸: flex: 1을 통해 화면 높이에 따라 자동 조절됨 */
-        .cal-day { 
-            background: #0a1a0a; 
-            padding: 5px; 
-            cursor: pointer; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between;
-            min-height: 0; /* 중요: 그리드 내부에서 축소 가능하게 함 */
-        }
-        
-        .day-num-text { 
-            font-size: 2rem; 
-            font-weight: 900; 
-            line-height: 1; 
-        }
-
-        /* [수정] 타임라인: 칸이 좁아져도 일정은 보이게 높이 조정 */
-        .time-timeline { 
-            display: grid; 
-            grid-template-columns: repeat(12, 1fr); 
-            gap: 1px; 
-            height: 20px; /* 메인화면 타임라인 높이 살짝 축소 */
-            background: #051405; 
-            border-radius: 2px; 
-            overflow: hidden; 
-        }
+        .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 20px; background: #051405; border-radius: 2px; overflow: hidden; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 모달 스타일 (기존 유지) */
+        /* [모달창 스타일 수정] */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 550px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px; }
         .time-btn { background: #1a2a1a; color: #555; padding: 10px 0; text-align: center; font-size: 0.7rem; cursor: pointer; border: none; }
         .time-btn.selected { background: var(--nh-gold) !important; color: black !important; font-weight: bold; }
-        .input-row { display: flex; gap: 8px; margin-bottom: 10px; height: 70px; }
-        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 70px; height: 70px; gap: 2px; background: #000; padding: 2px; }
+
+        .input-row { display: flex; gap: 8px; margin-bottom: 10px; height: 75px; }
+        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 75px; height: 75px; gap: 2px; background: #000; padding: 2px; }
+        .c-dot { width: 100%; height: 100%; cursor: pointer; border-radius: 2px; }
+        .c-dot.active { border: 2px solid #fff; box-sizing: border-box; }
         .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; }
-        .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 4px; color: white; font-size: 0.8rem; border: none; }
+
+        /* [수정] 하단 버튼들: 짙은 메탈 & 실버 화이트 글씨 */
+        .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .btn { 
+            padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; 
+            border-radius: 4px; border: 1px solid #444; 
+            background: var(--metal-button); 
+            color: var(--text-silver); 
+            font-size: 0.85rem; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .btn:hover { background: var(--metal-hover); }
+        .btn:active { transform: translateY(1px); }
     </style>
 </head>
 <body>
@@ -138,20 +91,33 @@
                 <textarea id="ev-name" class="ev-input" placeholder="내용 입력"></textarea>
             </div>
             <div class="action-btns">
-                <div class="btn" style="background:#444" onclick="resetForm()">추가</div>
-                <div class="btn" style="background:var(--nh-green)" onclick="saveData(false)">저장</div>
-                <div class="btn" style="background:var(--nh-gold); color:black" onclick="saveData(true)">수정</div>
-                <div class="btn" style="background:var(--sun-red)" onclick="deleteSpecific()">삭제</div>
-                <div class="btn" style="background:#4dff88; color:black" onclick="closeModal()">완료</div>
+                <div class="btn" onclick="resetForm()">추가</div>
+                <div class="btn" onclick="saveData(false)">저장</div>
+                <div class="btn" onclick="saveData(true)">수정</div>
+                <div class="btn" onclick="deleteSpecific()">삭제</div>
+                <div class="btn" style="border-color: var(--nh-gold);" onclick="closeModal()">완료</div>
             </div>
         </div>
     </div>
 
     <script>
-        const storageKey = 'dure_v17_final';
+        const storageKey = 'dure_v18_final';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-        const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
-        let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = '#ff4d4d';
+        
+        /* [수정] 겹치지 않는 선명한 9색 배치 */
+        const colors9 = [
+            '#FF0000', // 1. 레드 (강렬)
+            '#00FF00', // 2. 라임 (형광 녹색)
+            '#0070FF', // 3. 블루 (진한 파랑)
+            '#FFFF00', // 4. 옐로우 (노랑)
+            '#FF00FF', // 5. 마젠타 (핑크색 계열)
+            '#00FFFF', // 6. 사이언 (하늘색 계열)
+            '#FF8000', // 7. 오렌지 (주황)
+            '#A0A0A0', // 8. 그레이 (회색)
+            '#FFFFFF'  // 9. 화이트 (흰색)
+        ];
+
+        let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
@@ -193,13 +159,14 @@
 
         window.openModal = function(d) {
             currentDay = d;
-            document.getElementById('modal-date-title').innerText = d + "일 일정";
+            document.getElementById('modal-date-title').innerText = d + "일 일정 관리";
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
 
         window.resetForm = function() { 
-            startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; 
+            startSlot=null; endSlot=null; editingIndex=-1; 
+            document.getElementById('ev-name').value=''; 
             initPalette(); initTimePicker(); 
         };
 
@@ -207,8 +174,8 @@
             const pal = document.getElementById('color-palette'); pal.innerHTML = '';
             colors9.forEach(c => {
                 const div = document.createElement('div'); div.className = 'c-dot' + (c === selectedColor ? ' active' : '');
-                div.style.backgroundColor = c; div.style.border = (c === selectedColor) ? '2px solid white' : 'none';
-                div.onclick = () => { selectedColor = c; initPalette(); };
+                div.style.backgroundColor = c;
+                div.onclick = (e) => { e.stopPropagation(); selectedColor = c; initPalette(); };
                 pal.appendChild(div);
             });
         }
@@ -239,19 +206,19 @@
         function updateUI() { document.querySelectorAll('.time-btn').forEach((b, i) => { b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid gold' : 'none'; }); }
 
         window.saveData = function(isUpdate) {
-            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
+            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("내용을 입력하세요");
             const end = endSlot === null ? startSlot : endSlot;
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!events[currentDay]) events[currentDay] = [];
             const overlap = events[currentDay].some((ev, i) => (isUpdate && i === editingIndex) ? false : (startSlot <= ev.end && end >= ev.start));
-            if(overlap) return alert("중복");
+            if(overlap) return alert("일정이 겹칩니다");
             const data = { name, start: startSlot, end, color: selectedColor };
             if(isUpdate) events[currentDay][editingIndex] = data; else events[currentDay].push(data);
             localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm();
         };
 
         window.deleteSpecific = function() { 
-            if(editingIndex === -1) return;
+            if(editingIndex === -1) return alert("삭제할 일정을 먼저 선택하세요");
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             events[currentDay].splice(editingIndex, 1);
             localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm();
