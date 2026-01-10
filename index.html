@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 정밀 교정판</title>
+    <title>부평농협 둘레길 산악회 - 가독성 완성판</title>
     <style>
         :root {
             --bg-dark: #121212;
@@ -20,37 +20,29 @@
         .calendar-container { flex: 1; margin: 10px 0; border: 1px solid var(--metal-bright); background: #181818; display: flex; flex-direction: column; overflow-y: auto; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #444; }
         
-        .cal-day { background: #222; min-height: 105px; padding: 8px; cursor: pointer; border: 1px solid #181818; display: flex; flex-direction: column; }
-        
-        /* [수정 핵심] 날짜와 요일 높이 강제 일치 로직 */
-        .day-header { 
-            display: flex; 
-            align-items: center; /* 일단 수직 중앙 정렬 */
-            gap: 2px;
-            margin-bottom: 8px;
-            height: 1.6rem; /* 헤더 높이 고정 */
-        }
-        
-        .day-num-text { 
-            font-size: 1.6rem; 
+        /* [수정] 상단 요일 머리말 스타일 강화 */
+        .weekday-header { 
+            padding: 15px 0; 
+            text-align: center; 
+            font-size: 1.4rem; /* 요일 글씨 크기 대폭 확대 */
             font-weight: 900; 
-            line-height: 1; /* 줄간격 간섭 제거 */
-            display: inline-block;
+            background: #222;
         }
+
+        .cal-day { background: #222; min-height: 105px; padding: 10px; cursor: pointer; border: 1px solid #181818; display: flex; flex-direction: column; }
         
-        .day-name { 
-            font-size: 0.95rem; 
-            font-weight: bold;
+        /* [수정] 날짜 숫자만 크게 강조 */
+        .day-num-text { 
+            font-size: 2rem; /* 숫자 크기 시원하게 확대 */
+            font-weight: 900; 
             line-height: 1;
-            /* [중요] 숫자에 비해 요일이 낮아 보일 때 위로 밀어올리는 값 */
-            margin-bottom: -2px; 
-            display: inline-block;
+            margin-bottom: 10px;
         }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 35px; background: #333; border-radius: 3px; overflow: hidden; margin-top: auto; }
         .slot { background: #2d2d2d; height: 100%; }
 
-        /* 입력 팝업 스타일 */
+        /* 입력 팝업 스타일 (기존 유지) */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #252525; width: 95%; max-width: 500px; padding: 20px; border-radius: 15px; border: 2px solid var(--metal-bright); box-shadow: 0 0 50px #000; }
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 5px; }
@@ -76,7 +68,7 @@
             <div class="range-picker" id="time-range-box"></div>
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="산행 내용 입력"></textarea>
+                <textarea id="ev-name" class="ev-input" placeholder="내용 입력"></textarea>
             </div>
             <div class="action-btns">
                 <div class="btn" style="background:#444" onclick="resetForm()">추가</div>
@@ -89,7 +81,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_v13_final';
+        const storageKey = 'dure_v14_final';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = '#ff4d4d';
@@ -104,11 +96,13 @@
             const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
             let html = `<div class="cal-grid">`;
+            
+            // 상단 요일 머리말 강조
             dayNames.forEach((d, idx) => {
-                let color = '#666';
+                let color = '#fff';
                 if(idx === 0) color = 'var(--sun-red)';
                 if(idx === 6) color = 'var(--sat-blue)';
-                html += `<div style="padding:10px; text-align:center; font-size:0.8rem; color:${color}; font-weight:bold;">${d}</div>`;
+                html += `<div class="weekday-header" style="color:${color}">${d}</div>`;
             });
 
             for (let i = 0; i < firstDayIdx; i++) html += `<div></div>`;
@@ -126,21 +120,18 @@
 
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
-                        <div class="day-header" style="color:${dayColor}">
-                            <span class="day-num-text">${d}</span>
-                            <span class="day-name">(${dayNames[dayIdx]})</span>
-                        </div>
+                        <div class="day-num-text" style="color:${dayColor}">${d}</div>
                         <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
                     </div>`;
             }
             container.innerHTML = html + `</div>`;
         }
 
-        // 로직 부분
+        // [이하 기존 로직 동일]
         window.openModal = function(d) {
             currentDay = d;
             const dateObj = new Date(new Date().getFullYear(), new Date().getMonth(), d);
-            document.getElementById('modal-date-title').innerText = `${d}일 (${dayNames[dateObj.getDay()]}) 일정`;
+            document.getElementById('modal-date-title').innerText = `${d}일 (${dayNames[dateObj.getDay()]}) 일정 관리`;
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
