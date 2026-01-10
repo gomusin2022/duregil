@@ -31,7 +31,9 @@
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
 
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.4; }
+        
+        /* [핵심] 금지 표시 및 비활성화 스타일 분리 */
+        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3; }
         .time-btn.disabled { opacity: 0.2; cursor: pointer; filter: grayscale(1); }
     </style>
 </head>
@@ -93,39 +95,27 @@
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        // [핵심] 저장 및 영역 중첩 검사 로직 (실패 시 리턴하여 상태 유지)
         window.saveData = function() {
             if(currentMode === 'del') { deleteData(); return; }
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
-
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
-
-            // 타 블럭 침범 여부 검사
             for (let i = s; i <= e; i++) {
                 const overlapIdx = evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx);
-                if (overlapIdx !== -1) {
-                    // [변경] 여기서 경고만 띄우고 함수 종료 -> 작업 상태(수정모드) 유지됨
-                    alert(`범위 내에 [${evs[overlapIdx].name}] 일정이 중복됩니다. 범위를 수정하세요.`);
-                    return; 
-                }
+                if (overlapIdx !== -1) { alert(`중복 일정: [${evs[overlapIdx].name}]`); return; }
             }
-
-            // 중복이 없을 때만 저장 진행
             const ev = { name, start: s, end: e, color: selectedColor };
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
             else data[currentDay].events.push(ev);
-
             localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); 
-            changeRadioMode('add'); // 저장 성공 시에만 추가모드 리셋
+            renderCalendar(); changeRadioMode('add');
         };
 
+        // [중요 수정] 삭제 모드에서의 블럭 선택 로직 최적화
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -137,13 +127,15 @@
 
                 if(otherEvIdx !== -1) { 
                     b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
-                    b.classList.add('locked');
+                    // [변경] 삭제 모드일 때는 'locked(🚫)'를 주지 않음 -> 손가락 모양 유지
+                    if(currentMode !== 'del') b.classList.add('locked'); 
                 }
                 else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; }
                 
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
 
                 b.onclick = () => {
+                    // 삭제/수정 모드에서 기존 블럭 클릭 시 무조건 선택됨
                     if(otherEvIdx !== -1) {
                         if(currentMode !== 'add') {
                             editingIdx = otherEvIdx; const e = evs[otherEvIdx];
@@ -162,7 +154,7 @@
             }
         }
 
-        // --- 기타 기능(디자인 유지용) ---
+        // --- 기타 기능 (날씨, 캘린더 디자인 유지) ---
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const year = 2026, month = 0;
@@ -207,7 +199,7 @@
                 d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        window.deleteData = function() { if(editingIdx === -1) return alert("삭제할 대상을 선택하세요."); if(!confirm("삭제?")) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
+        window.deleteData = function() { if(editingIdx === -1) return alert("삭제할 일정을 먼저 선택하세요."); if(!confirm("삭제하시겠습니까?")) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
         window.onload = renderCalendar;
     </script>
 </body>
