@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 최종 전산망</title>
+    <title>부평농협 둘레길 산악회 - 실무 최적화</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -34,27 +34,32 @@
         .cal-day { background: #0a1a0a; padding: 5px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; position: relative; min-height: 0; }
         .day-num-text { font-size: 1.8rem; font-weight: 900; line-height: 1; }
 
-        .weather-display { font-size: 0.6rem; color: #ccc; text-align: right; line-height: 1.2; }
-        .weather-display b { color: var(--nh-gold); font-size: 0.7rem; }
+        .weather-display { font-size: 0.65rem; color: #ccc; text-align: right; line-height: 1.2; }
+        .weather-display b { color: var(--nh-gold); font-size: 0.75rem; }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 15px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: 3px; }
         .slot { background: #1a2a1a; height: 100%; }
 
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #0d2a0d; width: 95%; max-width: 580px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
+        .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 25px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         
-        .we-input-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
-        .we-input-grid select, .we-input-grid input { background: #000; border: 1px solid #444; color: #fff; padding: 8px 2px; font-size: 0.8rem; text-align: center; border-radius: 4px; }
+        /* 시간 선택 박스 */
+        .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 15px; background: #000; padding: 3px; }
+        .time-btn { background: #1a2a1a; color: #555; padding: 12px 0; text-align: center; font-size: 0.7rem; cursor: pointer; border: none; }
+        .time-btn.selected { background: var(--nh-gold) !important; color: black !important; font-weight: bold; }
 
-        .input-row { display: flex; gap: 8px; margin-bottom: 15px; height: 90px; }
-        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; height: 90px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
-        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
+        /* 입력창 행 */
+        .input-row { display: flex; gap: 10px; margin-bottom: 20px; height: 100px; }
+        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 100px; height: 100px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
+        .c-dot { width: 100%; height: 100%; cursor: pointer; border-radius: 2px; }
+        .c-dot.active { border: 2px solid #fff; box-sizing: border-box; }
+        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 12px; font-size: 1.2rem; resize: none; border-radius: 5px; }
         
-        /* 세로 버튼 강조 */
-        .btn-weather-fetch { width: 60px; height: 90px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        /* 날씨 버튼 세로형 유지 */
+        .btn-weather-fetch { width: 70px; height: 100px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
 
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 4px; border: 1px solid #444; background: var(--metal-button); color: var(--text-silver); font-size: 0.85rem; }
+        .btn { padding: 15px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; border: 1px solid #444; background: var(--metal-button); color: var(--text-silver); font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -70,40 +75,14 @@
 
     <div id="input-modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 10px 0;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 15px 0; font-size: 1.5rem;"></h3>
             
-            <div class="we-input-grid">
-                <select id="we-state">
-                    <option value="">날씨</option>
-                    <option value="☀️ 맑음">☀️ 맑음</option>
-                    <option value="☁️ 흐림">☁️ 흐림</option>
-                    <option value="☔ 비">☔ 비</option>
-                    <option value="❄️ 눈">❄️ 눈</option>
-                </select>
-                <select id="we-wind">
-                    <option value="">바람</option>
-                    <option value="없음">없음</option>
-                    <option value="미풍">미풍</option>
-                    <option value="강풍">강풍</option>
-                </select>
-                <select id="we-dust">
-                    <option value="">먼지</option>
-                    <option value="좋음">좋음</option>
-                    <option value="보통">보통</option>
-                    <option value="나쁨">나쁨</option>
-                </select>
-                <div style="display:flex; gap:2px;">
-                    <input type="text" id="we-low" placeholder="최저">
-                    <input type="text" id="we-high" placeholder="최고">
-                </div>
-            </div>
-
-            <div id="time-range-box" style="display:grid; grid-template-columns:repeat(12,1fr); gap:2px; margin-bottom:10px; background:#000; padding:3px;"></div>
+            <div id="time-range-box" class="range-picker"></div>
 
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="일정 내용 입력"></textarea>
-                <button class="btn-weather-fetch" onclick="quickWeather()">자동<br>날씨</button>
+                <textarea id="ev-name" class="ev-input" placeholder="일정 내용을 입력하세요"></textarea>
+                <button class="btn-weather-fetch" onclick="quickWeatherAndSave()">자동<br>날씨<br>입력</button>
             </div>
 
             <div class="action-btns">
@@ -117,29 +96,38 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_2026_fixed';
+        const storageKey = 'dure_final_v21';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
 
-        // [수정] 외부 API 통신 없이 즉시 입력되는 스마트 순환 로직
-        let weatherStep = 0;
-        function quickWeather() {
-            const states = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
-            const winds = ["미풍", "강풍", "없음"];
-            const dusts = ["좋음", "보통", "나쁨"];
+        // [수정] 수동칸 없이 버튼 하나로 날씨 생성 및 저장
+        let wCount = 0;
+        function quickWeatherAndSave() {
+            const now = new Date();
+            const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
+            const windArr = ["미풍", "강풍", "없음"];
+            const dustArr = ["좋음", "보통", "나쁨"];
+
+            const weData = {
+                state: skyArr[wCount % 4],
+                wind: windArr[wCount % 3],
+                dust: dustArr[wCount % 3],
+                low: 2 + (wCount % 5),
+                high: 12 + (wCount % 6)
+            };
+
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+            data[currentDay].weather = weData;
             
-            // 버튼 누를 때마다 날씨가 바뀜
-            document.getElementById('we-state').value = states[weatherStep % 4];
-            document.getElementById('we-wind').value = winds[weatherStep % 3];
-            document.getElementById('we-dust').value = dusts[weatherStep % 3];
-            document.getElementById('we-low').value = (5 + (weatherStep % 5));
-            document.getElementById('we-high').value = (15 + (weatherStep % 5));
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            wCount++;
+            renderCalendar();
             
-            weatherStep++;
             const btn = document.querySelector('.btn-weather-fetch');
-            btn.style.backgroundColor = "white";
-            setTimeout(() => btn.style.backgroundColor = "var(--nh-gold)", 100);
+            btn.innerText = "입력\n완료";
+            setTimeout(() => btn.innerText = "자동\n날씨\n입력", 800);
         }
 
         function renderCalendar() {
@@ -181,39 +169,26 @@
 
         window.openModal = function(d) {
             currentDay = d;
-            document.getElementById('modal-date-title').innerText = d + "일 상세 설정";
-            const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const we = (data[d] && data[d].weather) ? data[d].weather : {};
-            document.getElementById('we-state').value = we.state || "";
-            document.getElementById('we-wind').value = we.wind || "";
-            document.getElementById('we-dust').value = we.dust || "";
-            document.getElementById('we-low').value = we.low || "";
-            document.getElementById('we-high').value = we.high || "";
+            document.getElementById('modal-date-title').innerText = d + "일 일정 관리";
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
 
         window.saveData = function(isUpdate) {
             const name = document.getElementById('ev-name').value;
-            const weData = {
-                state: document.getElementById('we-state').value,
-                wind: document.getElementById('we-wind').value,
-                dust: document.getElementById('we-dust').value,
-                low: document.getElementById('we-low').value,
-                high: document.getElementById('we-high').value
-            };
+            if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
+            
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            data[currentDay].weather = weData;
 
-            if(name && startSlot !== null) {
-                const end = endSlot === null ? startSlot : endSlot;
-                const newEv = { name, start: startSlot, end, color: selectedColor };
-                if(isUpdate && editingIndex !== -1) data[currentDay].events[editingIndex] = newEv;
-                else data[currentDay].events.push(newEv);
-            }
+            const end = endSlot === null ? startSlot : endSlot;
+            const newEv = { name, start: startSlot, end, color: selectedColor };
+            
+            if(isUpdate && editingIndex !== -1) data[currentDay].events[editingIndex] = newEv;
+            else data[currentDay].events.push(newEv);
+            
             localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); resetForm(); alert("저장되었습니다.");
+            renderCalendar(); resetForm();
         };
 
         window.resetForm = function() { 
@@ -221,6 +196,7 @@
             document.getElementById('ev-name').value=''; 
             initPalette(); initTimePicker(); 
         };
+
         function initPalette() {
             const pal = document.getElementById('color-palette'); pal.innerHTML = '';
             colors9.forEach(c => {
@@ -229,6 +205,7 @@
                 pal.appendChild(div);
             });
         }
+
         function initTimePicker() {
             const box = document.getElementById('time-range-box'); box.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -237,7 +214,7 @@
             dayEvs.forEach((ev, i) => { for(let s=ev.start; s<=ev.end; s++) slotData[s] = { color: ev.color, idx: i }; });
             for(let i=0; i<12; i++) {
                 const btn = document.createElement('div'); btn.className = 'time-btn'; btn.innerText = (i+6).toString().padStart(2, '0');
-                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:10px 0; text-align:center; font-size:0.7rem; cursor:pointer;`;
+                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:12px 0; text-align:center; font-size:0.75rem; cursor:pointer;`;
                 btn.onclick = () => {
                     if(slotData[i].idx !== -1) { 
                         editingIndex = slotData[i].idx; const ev = dayEvs[editingIndex]; startSlot = ev.start; endSlot = ev.end; document.getElementById('ev-name').value = ev.name; selectedColor = ev.color; initPalette(); 
