@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>부평농협 둘레길 산악회 - 관리자 시스템</title>
     <style>
-        /* [모듈 1: 기본 테마 - 다크 메탈] */
+        /* [기본 테마 - 다크 메탈] */
         :root {
             --bg-dark: #121212;
             --metal-gray: #2c2c2c;
@@ -28,7 +28,7 @@
             box-sizing: border-box;
         }
 
-        /* [모듈 2: 헤더 및 통합 달력 영역 - 60%] */
+        /* [헤더 및 메인 화면 영역] */
         .header {
             text-align: center;
             font-size: 1.1rem;
@@ -51,21 +51,7 @@
             overflow-y: auto;
         }
 
-        .calendar-placeholder {
-            font-size: 0.85rem;
-            color: #555;
-            text-align: center;
-        }
-
-        .calendar-legend {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            font-size: 0.75rem;
-            color: #888;
-        }
-
-        /* [모듈 3: 메탈 버튼 시스템 - 입체 사각] */
+        /* [메탈 버튼 시스템] */
         .button-section {
             flex: 4;
             display: flex;
@@ -89,8 +75,7 @@
             padding: 20px 0;
             text-align: center;
             cursor: pointer;
-            box-shadow: 4px 4px 10px #000, 
-                        -1px -1px 2px rgba(255,255,255,0.1);
+            box-shadow: 4px 4px 10px #000, -1px -1px 2px rgba(255,255,255,0.1);
             transition: all 0.1s;
             display: flex;
             align-items: center;
@@ -116,15 +101,7 @@
     <div class="header">[부평농협 둘레길 산악회]</div>
 
     <div class="calendar-container" id="main-display">
-        <div class="calendar-placeholder">
-            <h3>2026. 01. 10</h3>
-            <p>메뉴를 선택해 주세요</p>
-        </div>
-        <div class="calendar-legend">
-            <span style="color:var(--point-red)">●</span> 산악회 
-            <span style="color:var(--point-green); margin-left:10px;">●</span> 기타교실 
-            <span style="color:var(--point-blue); margin-left:10px;">●</span> 범방위
-        </div>
+        <p style="color:#555;">시스템 로딩 중...</p>
     </div>
 
     <div class="button-section">
@@ -133,8 +110,8 @@
             <div class="btn-metal" onclick="app.showSchedule()">행사 / 일정</div>
         </div>
         <div class="grid-row">
-            <div class="btn-metal" onclick="alert('회계 관리 모듈 준비 중')">회계 관리</div>
-            <div class="btn-metal" onclick="alert('공지 문자 모듈 준비 중')">공지 문자</div>
+            <div class="btn-metal" onclick="alert('회계 관리 준비 중')">회계 관리</div>
+            <div class="btn-metal" onclick="alert('공지 문자 준비 중')">공지 문자</div>
         </div>
         
         <div class="btn-metal btn-wide" onclick="alert('보고서 센터 준비 중')">
@@ -149,6 +126,13 @@
         window.app = {
             showMember: () => initMember(),
             showSchedule: () => initSchedule()
+        };
+
+        // 페이지 열리자마자 달력을 즉시 실행하도록 설정
+        window.onload = () => {
+            if (typeof initSchedule === 'function') {
+                initSchedule();
+            }
         };
     </script>
 </body>
