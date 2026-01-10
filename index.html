@@ -30,11 +30,14 @@
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
 
+        /* 버튼 변신 전용 스타일 */
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
+        .confirm-active { background: #fff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
+        
+        @keyframes blink { 50% { opacity: 0.7; } }
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
-        @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
@@ -62,12 +65,11 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">완료</button>
-                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
-                <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
-                <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
-                <button id="mode-del" onclick="handleDelBtnClick()" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:5px; font-weight:bold; cursor:pointer;">닫기</button>
+                <button id="mode-add" onclick="handleMainBtn('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
+                <button id="mode-edit" onclick="handleMainBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
+                <button id="mode-del" onclick="handleMainBtn('del')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
             </div>
         </div>
     </div>
@@ -80,7 +82,7 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v9_map';
+        const storageKey = 'nh_weather_final_v10_auto';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; let map, marker, ps;
 
@@ -88,15 +90,45 @@
         function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
         function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
         
-        function changeRadioMode(mode) {
+        // [핵심] 버튼 통합 핸들러
+        function handleMainBtn(mode) {
+            // 이미 활성화된 '확인' 상태일 때 누르면 실행
+            if (currentMode === mode) {
+                if (mode === 'add' && startSlot !== null) saveData();
+                else if (mode === 'edit' && editingIdx !== -1) saveData();
+                else if (mode === 'del' && editingIdx !== -1) deleteData();
+                return;
+            }
+            
+            // 일반 모드 전환
             currentMode = mode;
-            document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
-            document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
-            document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
+            updateBtnUI();
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        function handleDelBtnClick() { if (currentMode !== 'del') changeRadioMode('del'); else if (editingIdx !== -1) deleteData(); }
+        function updateBtnUI() {
+            const addBtn = document.getElementById('mode-add');
+            const editBtn = document.getElementById('mode-edit');
+            const delBtn = document.getElementById('mode-del');
+
+            // 초기화
+            [addBtn, editBtn, delBtn].forEach(b => { 
+                b.classList.remove('radio-active', 'confirm-active', 'del-confirm-active');
+                b.innerText = b.id.split('-')[1] === 'add' ? "추가" : b.id.split('-')[1] === 'edit' ? "수정" : "삭제";
+            });
+
+            // 현재 모드 강조
+            if (currentMode === 'add') {
+                addBtn.classList.add('radio-active');
+                if (startSlot !== null) { addBtn.innerText = "추가확인"; addBtn.classList.add('confirm-active'); }
+            } else if (currentMode === 'edit') {
+                editBtn.classList.add('radio-active');
+                if (editingIdx !== -1) { editBtn.innerText = "수정확인"; editBtn.classList.add('confirm-active'); }
+            } else if (currentMode === 'del') {
+                delBtn.classList.add('radio-active');
+                if (editingIdx !== -1) { delBtn.innerText = "삭제확인"; delBtn.classList.add('del-confirm-active'); }
+            }
+        }
 
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
@@ -106,7 +138,6 @@
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
-                
                 if(foundIdx !== -1) {
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color;
                     b.style.color = "#000";
@@ -116,26 +147,19 @@
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
-                    // [교정 핵심] 수정 모드에서 블록 선택 로직
                     if(foundIdx !== -1 && currentMode !== 'add') {
-                        // 내가 지금 수정 중인 블록이 아닐 때만 '대상 선택'으로 작동
                         if(!isEditingThis) {
                             editingIdx = foundIdx; const e = evs[foundIdx];
                             startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                             document.getElementById('ev-name').value = e.name;
-                            initPalette(); initTime(); return;
+                            updateBtnUI(); initPalette(); initTime(); return;
                         }
-                        // 내가 수정 중인 블록 내부를 클릭했다면? 아래 범위 선택 로직으로 통과!
                     }
-                    
-                    // 범위 선택 로직 (추가 모드거나, 수정 모드에서 대상을 이미 정했을 때)
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
-                        // 남의 땅이면 클릭 무시
                         if(foundIdx !== -1 && !isEditingThis) return;
-                        
                         if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; }
                         else { endSlot = i; }
-                        updateTimeUI();
+                        updateTimeUI(); updateBtnUI();
                     }
                 };
                 t.appendChild(b);
@@ -148,13 +172,12 @@
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             btns.forEach((btn, idx) => {
                 if(startSlot !== null && idx >= s && idx <= e) {
-                    btn.style.background = selectedColor;
-                    btn.style.outline = "3px solid gold"; btn.style.zIndex = "10";
+                    btn.style.background = selectedColor; btn.style.outline = "3px solid gold"; btn.style.zIndex = "10";
                 } else { btn.style.outline = "none"; btn.style.zIndex = "1"; }
             });
         }
 
-        window.saveData = function() {
+        function saveData() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
@@ -167,10 +190,14 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add');
-        };
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleMainBtn('add');
+        }
 
-        window.deleteData = function() { let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
+        function deleteData() { 
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            data[currentDay].events.splice(editingIdx, 1);
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleMainBtn('add');
+        }
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
@@ -184,9 +211,9 @@
             }
             container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
         }
-        window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; changeRadioMode('add'); };
-        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
+        function openModal(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; handleMainBtn('add'); }
+        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
+        function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); }
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
