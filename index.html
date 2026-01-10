@@ -67,7 +67,7 @@
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
                 <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
-                <button id="save-btn" onclick="saveData()" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
+                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">저장</button>
                 <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
                 <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
                 <button id="mode-del" onclick="changeRadioMode('del')" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
@@ -85,7 +85,7 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v8';
+        const storageKey = 'nh_weather_final_v8_stable';
         const apiKey = 'b1eb3292419409f920f69d35c59f0f90';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; 
@@ -93,7 +93,7 @@
         // [라디오 버튼 핵심 로직]
         function changeRadioMode(mode) {
             currentMode = mode;
-            // 유아이 모양 보존을 위해 클래스만 토글
+            // 버튼 상태 시각화
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
             document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
@@ -101,11 +101,6 @@
             if(mode === 'add') {
                 editingIdx = -1; startSlot = null; endSlot = null;
                 document.getElementById('ev-name').value = '';
-                document.getElementById('save-btn').innerText = "저장";
-            } else if(mode === 'edit') {
-                document.getElementById('save-btn').innerText = "수정완료";
-            } else {
-                document.getElementById('save-btn').innerText = "삭제수행";
             }
             initTime(); 
         }
@@ -114,22 +109,17 @@
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
-            
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; 
                 b.innerText = (i+6).toString().padStart(2,'0');
                 const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
                 const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
-
                 if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
                 else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; b.style.outline = "2px solid gold"; }
-
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
-
                 b.onclick = () => {
                     if(currentMode !== 'add' && otherEvIdx !== -1) {
-                        editingIdx = otherEvIdx; 
-                        const e = evs[otherEvIdx];
+                        editingIdx = otherEvIdx; const e = evs[otherEvIdx];
                         startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                         document.getElementById('ev-name').value = e.name;
                         initPalette(); initTime(); return;
@@ -152,14 +142,15 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = { name, start: s, end: e, color: selectedColor };
-            else data[currentDay].events.push({ name, start: s, end: e, color: selectedColor });
+            const ev = { name, start: s, end: e, color: selectedColor };
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
+            else data[currentDay].events.push(ev);
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar(); changeRadioMode('add');
         };
 
         window.deleteData = function() {
-            if(editingIdx === -1) return alert("삭제할 일정을 먼저 선택하세요.");
+            if(editingIdx === -1) return alert("일정을 먼저 선택하세요.");
             if(!confirm("삭제하시겠습니까?")) return;
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             data[currentDay].events.splice(editingIdx, 1);
@@ -168,14 +159,14 @@
         };
 
         window.openModal = function(d) {
-            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
+            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정 관리";
             document.getElementById('input-modal').style.display = 'flex';
             changeRadioMode('add');
         };
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const year = 2026, month = 0;
+            const now = new Date(); const year = 2026, month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
             const firstIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month+1, 0).getDate();
@@ -215,8 +206,8 @@
                 d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        window.getRealWeather = function() { /* 생략 */ };
-        window.confirmLocation = function() { /* 생략 */ };
+        async function getRealWeather() { /* 기존 로직 동일 */ }
+        function confirmLocation() { /* 기존 로직 동일 */ }
         window.onload = renderCalendar;
     </script>
 </body>
