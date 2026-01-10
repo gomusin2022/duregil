@@ -2,83 +2,120 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 공식 스케줄러</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>부평농협 둘레길 산악회 - 스마트 전산</title>
     <style>
         :root {
-            --bg-dark: #0a1a0a; /* 깊은 다크그린 배경 */
-            --nh-green: #006837; /* 농협 심볼 그린 */
-            --nh-gold: #d4af37;  /* 황금색 */
-            --metal-bright: #3d5a3d;
+            --bg-dark: #0a1a0a;
+            --nh-green: #006837;
+            --nh-gold: #d4af37;
             --text-silver: #e0e0e0;
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
         }
 
+        /* [핵심] 스크롤 원천 차단 및 전체 높이 고정 */
         body { 
             background-color: var(--bg-dark); 
             color: var(--text-silver); 
             font-family: 'Malgun Gothic', sans-serif; 
-            margin: 0; padding: 10px; 
+            margin: 0; padding: 5px; 
             display: flex; flex-direction: column; 
-            height: 100vh; box-sizing: border-box; overflow: hidden; 
+            height: 100vh; /* 브라우저 높이에 딱 맞춤 */
+            box-sizing: border-box; 
+            overflow: hidden; 
         }
 
-        /* [수정] 타이틀 영역: 연도 추가 및 황금색 입체 테두리 */
+        /* [수정] 타이틀: 확실하게 크게(3rem), 하지만 세로 여백은 줄여서 공간 확보 */
         .header-container {
             text-align: center;
-            padding: 15px 0;
-            margin-bottom: 5px;
+            padding: 8px 0;
             background: linear-gradient(145deg, #0d2a0d, #051405);
-            border: 3px solid var(--nh-gold); /* 황금 테두리 */
-            border-radius: 10px;
-            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.1), 0 5px 15px rgba(0,0,0,0.5);
+            border: 2px solid var(--nh-gold);
+            border-radius: 8px;
+            flex-shrink: 0; /* 헤더 크기 고정 */
         }
         
-        .year-text { font-size: 1.2rem; color: var(--nh-gold); margin-bottom: 5px; font-weight: bold; }
+        .year-text { font-size: 1rem; color: var(--nh-gold); font-weight: bold; margin-bottom: 2px; }
 
         .header-title { 
-            font-size: 2.6rem; 
+            font-size: 3rem; /* 날짜(2rem)보다 확실히 큰 사이즈 */
             font-weight: 900; 
             color: var(--nh-gold); 
-            text-shadow: 2px 2px 0px #000, 4px 4px 8px rgba(0,0,0,0.8);
-            letter-spacing: -1px;
+            text-shadow: 2px 2px 4px #000;
             margin: 0;
+            line-height: 1.1;
         }
 
-        .calendar-container { flex: 1; margin-top: 15px; border: 2px solid var(--nh-green); background: #051405; display: flex; flex-direction: column; overflow-y: auto; border-radius: 5px; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--nh-green); }
-        
-        .weekday-header { padding: 15px 0; text-align: center; font-size: 1.4rem; font-weight: 900; background: #082008; border-bottom: 1px solid var(--nh-gold); }
+        /* [수정] 달력 컨테이너: 남은 화면을 모두 차지하도록 flex 설정 */
+        .calendar-container { 
+            flex: 1; 
+            margin-top: 5px; 
+            display: flex; 
+            flex-direction: column; 
+            background: #051405; 
+            border: 1px solid var(--nh-green);
+            overflow: hidden;
+        }
 
-        .cal-day { background: #0a1a0a; min-height: 105px; padding: 10px; cursor: pointer; border: 1px solid #051405; display: flex; flex-direction: column; transition: 0.2s; }
-        .cal-day:hover { background: #0d2a0d; }
+        .cal-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            grid-template-rows: auto repeat(6, 1fr); /* 요일줄 제외 6행 균등 배분 */
+            height: 100%;
+            gap: 1px; 
+            background: var(--nh-green); 
+        }
         
-        .day-num-text { font-size: 2rem; font-weight: 900; line-height: 1; margin-bottom: 10px; }
+        .weekday-header { 
+            padding: 5px 0; 
+            text-align: center; 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            background: #082008; 
+            color: #fff;
+        }
 
-        .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 35px; background: #051405; border-radius: 3px; overflow: hidden; margin-top: auto; border: 1px solid #222; }
+        /* [수정] 날짜 칸: flex: 1을 통해 화면 높이에 따라 자동 조절됨 */
+        .cal-day { 
+            background: #0a1a0a; 
+            padding: 5px; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between;
+            min-height: 0; /* 중요: 그리드 내부에서 축소 가능하게 함 */
+        }
+        
+        .day-num-text { 
+            font-size: 2rem; 
+            font-weight: 900; 
+            line-height: 1; 
+        }
+
+        /* [수정] 타임라인: 칸이 좁아져도 일정은 보이게 높이 조정 */
+        .time-timeline { 
+            display: grid; 
+            grid-template-columns: repeat(12, 1fr); 
+            gap: 1px; 
+            height: 20px; /* 메인화면 타임라인 높이 살짝 축소 */
+            background: #051405; 
+            border-radius: 2px; 
+            overflow: hidden; 
+        }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 모달 스타일 */
+        /* 모달 스타일 (기존 유지) */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { 
-            background: #0d2a0d; width: 95%; max-width: 550px; padding: 25px; 
-            border-radius: 15px; border: 3px solid var(--nh-gold); 
-            box-shadow: 0 0 50px rgba(212, 175, 55, 0.3); 
-        }
-        
-        .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 20px; background: #000; padding: 5px; border-radius: 5px; }
-        .time-btn { background: #1a2a1a; border: none; color: #555; padding: 15px 0; text-align: center; font-size: 0.8rem; cursor: pointer; }
+        .modal-content { background: #0d2a0d; width: 95%; max-width: 550px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
+        .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px; }
+        .time-btn { background: #1a2a1a; color: #555; padding: 10px 0; text-align: center; font-size: 0.7rem; cursor: pointer; border: none; }
         .time-btn.selected { background: var(--nh-gold) !important; color: black !important; font-weight: bold; }
-        
-        .input-row { display: flex; gap: 10px; margin-bottom: 20px; height: 90px; }
-        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; height: 90px; gap: 2px; background: #000; padding: 2px; }
-        .c-dot { width: 100%; height: 100%; cursor: pointer; border-radius: 2px; }
-        .c-dot.active { border: 2px solid white; box-sizing: border-box; }
-        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; border-radius: 5px; padding: 12px; font-size: 1.2rem; resize: none; }
-        
-        .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .btn { padding: 15px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; color: white; font-size: 0.9rem; border: none; }
+        .input-row { display: flex; gap: 8px; margin-bottom: 10px; height: 70px; }
+        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 70px; height: 70px; gap: 2px; background: #000; padding: 2px; }
+        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; }
+        .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 4px; color: white; font-size: 0.8rem; border: none; }
     </style>
 </head>
 <body>
@@ -88,18 +125,20 @@
         <div class="header-title">부평농협 둘레길 산악회</div>
     </div>
 
-    <div class="calendar-container" id="main-calendar"></div>
+    <div class="calendar-container">
+        <div id="main-calendar" class="cal-grid"></div>
+    </div>
 
     <div id="input-modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); font-size:1.6rem; margin-top:0;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 10px 0;"></h3>
             <div class="range-picker" id="time-range-box"></div>
             <div class="input-row">
                 <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="산행 일정 내용을 입력하세요"></textarea>
+                <textarea id="ev-name" class="ev-input" placeholder="내용 입력"></textarea>
             </div>
             <div class="action-btns">
-                <div class="btn" style="background:#333" onclick="resetForm()">추가</div>
+                <div class="btn" style="background:#444" onclick="resetForm()">추가</div>
                 <div class="btn" style="background:var(--nh-green)" onclick="saveData(false)">저장</div>
                 <div class="btn" style="background:var(--nh-gold); color:black" onclick="saveData(true)">수정</div>
                 <div class="btn" style="background:var(--sun-red)" onclick="deleteSpecific()">삭제</div>
@@ -109,7 +148,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_v16_final';
+        const storageKey = 'dure_v17_final';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = '#ff4d4d';
@@ -123,7 +162,7 @@
             const lastDate = new Date(year, month + 1, 0).getDate();
             const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
-            let html = `<div class="cal-grid">`;
+            let html = '';
             dayNames.forEach((d, idx) => {
                 let color = '#fff';
                 if(idx === 0) color = 'var(--sun-red)';
@@ -131,7 +170,7 @@
                 html += `<div class="weekday-header" style="color:${color}">${d}</div>`;
             });
 
-            for (let i = 0; i < firstDayIdx; i++) html += `<div></div>`;
+            for (let i = 0; i < firstDayIdx; i++) html += `<div class="cal-day" style="background:transparent; cursor:default;"></div>`;
 
             for (let d = 1; d <= lastDate; d++) {
                 const dayIdx = new Date(year, month, d).getDay();
@@ -149,26 +188,31 @@
                         <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
                     </div>`;
             }
-            container.innerHTML = html + `</div>`;
+            container.innerHTML = html;
         }
 
-        // [기존 팝업/저장 로직 동일 적용]
         window.openModal = function(d) {
             currentDay = d;
-            const dayIdx = new Date(new Date().getFullYear(), new Date().getMonth(), d).getDay();
-            document.getElementById('modal-date-title').innerText = `${d}일 (${dayNames[dayIdx]}) 일정`;
+            document.getElementById('modal-date-title').innerText = d + "일 일정";
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
-        window.resetForm = function() { startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; initPalette(); initTimePicker(); };
+
+        window.resetForm = function() { 
+            startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; 
+            initPalette(); initTimePicker(); 
+        };
+
         function initPalette() {
             const pal = document.getElementById('color-palette'); pal.innerHTML = '';
             colors9.forEach(c => {
                 const div = document.createElement('div'); div.className = 'c-dot' + (c === selectedColor ? ' active' : '');
-                div.style.backgroundColor = c; div.onclick = () => { selectedColor = c; initPalette(); };
+                div.style.backgroundColor = c; div.style.border = (c === selectedColor) ? '2px solid white' : 'none';
+                div.onclick = () => { selectedColor = c; initPalette(); };
                 pal.appendChild(div);
             });
         }
+
         function initTimePicker() {
             const box = document.getElementById('time-range-box'); box.innerHTML = '';
             const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -178,28 +222,41 @@
             for(let i=0; i<12; i++) {
                 const btn = document.createElement('div'); btn.className = 'time-btn'; btn.innerText = (i+6).toString().padStart(2, '0');
                 btn.style.backgroundColor = slotData[i].color;
-                if(editingIndex !== -1 && slotData[i].idx !== -1 && slotData[i].idx !== editingIndex) btn.style.opacity = '0.2';
                 btn.onclick = () => {
-                    if(slotData[i].idx !== -1) { editingIndex = slotData[i].idx; const ev = dayEvs[editingIndex]; startSlot = ev.start; endSlot = ev.end; document.getElementById('ev-name').value = ev.name; selectedColor = ev.color; initPalette(); }
-                    else { if (startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { if (i < startSlot) { endSlot = startSlot; startSlot = i; } else { endSlot = i; } } }
+                    if(slotData[i].idx !== -1) { 
+                        editingIndex = slotData[i].idx; const ev = dayEvs[editingIndex]; 
+                        startSlot = ev.start; endSlot = ev.end; document.getElementById('ev-name').value = ev.name; selectedColor = ev.color; initPalette(); 
+                    } else { 
+                        if (startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } 
+                        else { if (i < startSlot) { endSlot = startSlot; startSlot = i; } else { endSlot = i; } } 
+                    }
                     updateUI();
                 };
                 box.appendChild(btn);
             }
         }
-        function updateUI() { document.querySelectorAll('.time-btn').forEach((b, i) => { b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid var(--nh-gold)' : 'none'; }); }
+
+        function updateUI() { document.querySelectorAll('.time-btn').forEach((b, i) => { b.style.outline = (startSlot !== null && (i === startSlot || (endSlot !== null && i >= startSlot && i <= endSlot))) ? '2px solid gold' : 'none'; }); }
+
         window.saveData = function(isUpdate) {
-            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("내용을 입력하세요");
+            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
             const end = endSlot === null ? startSlot : endSlot;
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!events[currentDay]) events[currentDay] = [];
             const overlap = events[currentDay].some((ev, i) => (isUpdate && i === editingIndex) ? false : (startSlot <= ev.end && end >= ev.start));
-            if(overlap) return alert("시간 중복");
+            if(overlap) return alert("중복");
             const data = { name, start: startSlot, end, color: selectedColor };
             if(isUpdate) events[currentDay][editingIndex] = data; else events[currentDay].push(data);
             localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm();
         };
-        window.deleteSpecific = function() { if(editingIndex === -1) return; if(confirm("삭제하시겠습니까?")) { let events = JSON.parse(localStorage.getItem(storageKey) || '{}'); events[currentDay].splice(editingIndex, 1); localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm(); } };
+
+        window.deleteSpecific = function() { 
+            if(editingIndex === -1) return;
+            let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            events[currentDay].splice(editingIndex, 1);
+            localStorage.setItem(storageKey, JSON.stringify(events)); renderCalendar(); resetForm();
+        };
+
         window.closeModal = function() { document.getElementById('input-modal').style.display='none'; };
         window.onload = renderCalendar;
     </script>
