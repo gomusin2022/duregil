@@ -25,7 +25,7 @@
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
-        .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
+        .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; position: relative; }
 
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
@@ -63,85 +63,40 @@
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">완료</button>
-                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">저장</button>
-                <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
-                <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
-                <button id="mode-del" onclick="handleDelBtnClick()" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
+                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">완료</button>
+                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
+                <button id="mode-add" onclick="changeRadioMode('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
+                <button id="mode-edit" onclick="changeRadioMode('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
+                <button id="mode-del" onclick="handleDelBtnClick()" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
             </div>
         </div>
     </div>
 
     <div id="map-overlay">
         <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:15px; text-align:center;">장소 지도 검색</div>
-        <div style="display:flex; gap:5px; margin-bottom:10px;">
-            <input type="text" id="map-search-input" style="flex:1; padding:12px; border-radius:5px; border:none;" placeholder="산 이름 또는 지역명">
-            <button onclick="searchPlace()" style="padding:10px 20px; background:var(--nh-gold); border:none; border-radius:5px; font-weight:bold;">검색</button>
-        </div>
+        <div style="display:flex; gap:5px; margin-bottom:10px;"><input type="text" id="map-search-input" style="flex:1; padding:12px; border-radius:5px; border:none;"><button onclick="searchPlace()" style="padding:10px 20px; background:var(--nh-gold); border:none; border-radius:5px; font-weight:bold;">검색</button></div>
         <div id="map-container"></div>
-        <div style="display:flex; gap:10px;">
-            <button onclick="confirmMapLocation()" style="flex:1; padding:15px; background:var(--nh-green); color:white; font-weight:bold; border:none; border-radius:8px;">이 위치로 확정</button>
-            <button onclick="document.getElementById('map-overlay').style.display='none'" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button>
-        </div>
+        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:15px; background:var(--nh-green); color:white; font-weight:bold; border:none; border-radius:8px;">이 위치로 확정</button><button onclick="document.getElementById('map-overlay').style.display='none'" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button></div>
     </div>
 
     <script>
         const storageKey = 'nh_weather_final_v9_map';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; 
-        let map, marker, ps;
+        let currentMode = 'add'; let map, marker, ps;
 
-        function openMap() {
-            document.getElementById('map-overlay').style.display = 'flex';
-            const container = document.getElementById('map-container');
-            const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; 
-            map = new kakao.maps.Map(container, options);
-            marker = new kakao.maps.Marker({ position: map.getCenter() });
-            marker.setMap(map);
-            ps = new kakao.maps.services.Places(); 
-        }
-
-        function searchPlace() {
-            const keyword = document.getElementById('map-search-input').value;
-            if (!keyword) return alert("검색어를 입력하세요.");
-            ps.keywordSearch(keyword, (data, status) => {
-                if (status === kakao.maps.services.Status.OK) {
-                    const firstResult = data[0];
-                    const pos = new kakao.maps.LatLng(firstResult.y, firstResult.x);
-                    marker.setPosition(pos);
-                    map.setCenter(pos);
-                    document.getElementById('map-search-input').value = firstResult.place_name;
-                } else { alert("검색 결과가 없습니다."); }
-            });
-        }
-
-        function confirmMapLocation() {
-            const placeName = document.getElementById('map-search-input').value;
-            if (!placeName) return alert("장소를 검색하거나 선택해주세요.");
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            data[currentDay].weather.location = placeName;
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            document.getElementById('loc-btn').innerText = placeName;
-            document.getElementById('map-overlay').style.display = 'none';
-            renderCalendar();
-        }
-
+        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); ps = new kakao.maps.services.Places(); }
+        function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
+        function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
+        
         function changeRadioMode(mode) {
             currentMode = mode;
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
-            const delBtn = document.getElementById('mode-del');
-            delBtn.classList.toggle('radio-active', mode === 'del');
-            delBtn.innerText = "삭제"; delBtn.classList.remove('del-confirm-active');
+            document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        function handleDelBtnClick() {
-            if (currentMode !== 'del') changeRadioMode('del');
-            else if (editingIdx !== -1) deleteData();
-            else alert("삭제 대상을 선택하세요.");
-        }
+        function handleDelBtnClick() { if (currentMode !== 'del') changeRadioMode('del'); else if (editingIdx !== -1) deleteData(); }
 
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
@@ -153,33 +108,31 @@
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
                 
                 if(foundIdx !== -1) {
-                    const target = evs[foundIdx];
-                    b.style.background = isEditingThis ? selectedColor : target.color;
+                    b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color;
                     b.style.color = "#000";
-                    // [해결!] 내가 고치고 있는 블록은 금지표시(locked)를 하지 않음
                     if(isEditingThis) { b.style.outline = "3px solid gold"; b.style.zIndex = "10"; }
                     else if (currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked');
-                    else if (currentMode === 'add') b.classList.add('locked'); 
+                    else if (currentMode === 'add') b.classList.add('locked');
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
-                    if(foundIdx !== -1) {
-                        if(currentMode !== 'add') {
+                    // [교정 핵심] 수정 모드에서 블록 선택 로직
+                    if(foundIdx !== -1 && currentMode !== 'add') {
+                        // 내가 지금 수정 중인 블록이 아닐 때만 '대상 선택'으로 작동
+                        if(!isEditingThis) {
                             editingIdx = foundIdx; const e = evs[foundIdx];
-                            // [수정] 수정 클릭 시 기존 시간 일단 보존하여 오류 방지
-                            startSlot = e.start; endSlot = e.end; 
-                            selectedColor = e.color;
+                            startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                             document.getElementById('ev-name').value = e.name;
-                            if(currentMode === 'del') {
-                                const delBtn = document.getElementById('mode-del');
-                                delBtn.innerText = "삭제확인"; delBtn.classList.add('del-confirm-active');
-                            }
-                            initPalette(); initTime();
+                            initPalette(); initTime(); return;
                         }
-                        return;
+                        // 내가 수정 중인 블록 내부를 클릭했다면? 아래 범위 선택 로직으로 통과!
                     }
+                    
+                    // 범위 선택 로직 (추가 모드거나, 수정 모드에서 대상을 이미 정했을 때)
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
+                        // 남의 땅이면 클릭 무시
                         if(foundIdx !== -1 && !isEditingThis) return;
+                        
                         if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; }
                         else { endSlot = i; }
                         updateTimeUI();
@@ -196,55 +149,40 @@
             btns.forEach((btn, idx) => {
                 if(startSlot !== null && idx >= s && idx <= e) {
                     btn.style.background = selectedColor;
-                    btn.style.outline = "2px solid gold";
-                } else { btn.style.outline = "none"; }
+                    btn.style.outline = "3px solid gold"; btn.style.zIndex = "10";
+                } else { btn.style.outline = "none"; btn.style.zIndex = "1"; }
             });
         }
 
         window.saveData = function() {
-            if(currentMode === 'del') { handleDelBtnClick(); return; }
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
-            
-            // [중요] 중복 체크 시 자기 자신(editingIdx)은 검사에서 배제
             for (let i = s; i <= e; i++) {
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
             }
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); changeRadioMode('add');
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add');
         };
 
-        window.deleteData = function() { 
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); editingIdx = -1; changeRadioMode('del'); 
-        };
+        window.deleteData = function() { let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); changeRadioMode('add'); };
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const year = 2026, month = 0;
-            const firstIdx = new Date(year, month, 1).getDay();
-            const lastDate = new Date(year, month+1, 0).getDate();
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            let html = '';
-            ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
-            for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
-            for(let d=1; d<=lastDate; d++) {
-                const dayIdx = new Date(year, month, d).getDay();
+            let html = ''; ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
+            for(let i=0; i<new Date(2026,0,1).getDay(); i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
+            for(let d=1; d<=31; d++) {
                 const dData = data[d] || { events: [] };
-                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
+                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = dData.events.find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
             }
-            container.innerHTML = html;
-            document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
+            container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
         }
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; changeRadioMode('add'); };
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
@@ -253,8 +191,7 @@
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
-                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
-                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
+                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
         window.onload = renderCalendar;
