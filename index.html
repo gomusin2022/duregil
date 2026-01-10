@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 실무 최적화 시스템</title>
+    <title>부평농협 둘레길 산악회 - 실무 완결판</title>
     <style>
         :root {
             --bg-dark: #121212;
@@ -32,23 +32,23 @@
         .modal-content { background: #252525; width: 98%; max-width: 550px; padding: 25px; border-radius: 15px; border: 2px solid var(--metal-bright); box-shadow: 0 0 50px #000; }
         
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 20px; background: #000; padding: 5px; border-radius: 5px; }
-        .time-btn { background: #333; border: none; color: #777; padding: 15px 0; text-align: center; font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
+        .time-btn { background: #333; border: none; color: #777; padding: 15px 0; text-align: center; font-size: 0.7rem; cursor: pointer; transition: 0.2s; position: relative; }
         
         .time-btn.selected { 
-            outline: 2px solid white; 
+            outline: 3px solid white; 
             z-index: 10;
             color: black !important;
             font-weight: bold;
-            box-shadow: 0 0 10px white;
+            box-shadow: 0 0 15px white;
         }
+        .time-btn.disabled { opacity: 0.3; cursor: not-allowed; }
 
         input { width: 100%; padding: 15px; margin-bottom: 15px; background: #111; color: white; border: 1px solid #555; border-radius: 8px; box-sizing: border-box; font-size: 1.1rem; }
         .color-group { display: flex; gap: 10px; margin-bottom: 25px; }
         .color-btn { flex: 1; height: 50px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; }
 
-        /* [수정] 버튼 5개를 한 줄로 배치 */
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-        .btn { padding: 18px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 8px; color: white; font-size: 0.9rem; border: 1px solid #111; }
+        .btn { padding: 18px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 8px; color: white; font-size: 0.85rem; border: 1px solid #111; }
         .btn-add { background: #444; }
         .btn-save { background: var(--point-blue); }
         .btn-edit { background: #666; }
@@ -58,17 +58,18 @@
 </head>
 <body>
 
-    <div class="header">[부평농협 산악회 - 스케줄 정밀관리]</div>
+    <div class="header">[부평농협 산악회 - 영역보호 시스템]</div>
 
     <div class="calendar-container" id="main-calendar"></div>
 
     <div id="input-modal">
         <div class="modal-content">
             <h3 id="modal-date-title" style="color:var(--point-orange); margin-top:0; text-align:center;">일정 설정</h3>
+            <p id="mode-indicator" style="text-align:center; font-size:0.8rem; color:#888; margin-top:-15px; margin-bottom:15px;">추가 모드</p>
             
             <div class="range-picker" id="time-range-box"></div>
 
-            <input type="text" id="ev-name" placeholder="행사 내용 입력">
+            <input type="text" id="ev-name" placeholder="내용 입력">
 
             <div class="color-group">
                 <div class="color-btn" onclick="selCol('var(--point-red)', this)" style="background:var(--point-red); border-color:white;"></div>
@@ -79,8 +80,8 @@
 
             <div class="action-btns">
                 <div class="btn btn-add" onclick="resetForm()">추가</div>
-                <div class="btn btn-save" onclick="saveData()">저장</div>
-                <div class="btn btn-edit" onclick="saveData()">수정</div>
+                <div class="btn btn-save" onclick="saveData(false)">저장</div>
+                <div class="btn btn-edit" onclick="saveData(true)">수정완료</div>
                 <div class="btn btn-delete" onclick="deleteSpecific()">삭제</div>
                 <div class="btn btn-complete" onclick="closeModal()">완료</div>
             </div>
@@ -90,54 +91,64 @@
     <script>
         let currentDay = 0;
         let selectedColor = 'var(--point-red)';
-        let startSlot = null;
-        let endSlot = null;
-        const storageKey = 'dure_final_v6';
+        let startSlot = null, endSlot = null;
+        let editingIndex = -1; // 수정 중인 일정의 인덱스
+        const storageKey = 'dure_final_pro_v8';
 
         function initTimePicker() {
             const box = document.getElementById('time-range-box');
             box.innerHTML = '';
-            const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const events = getEvents();
             const dayEvs = events[currentDay] || [];
-            const slotColors = Array(12).fill('#333'); 
             
-            dayEvs.forEach(ev => {
-                for(let s = ev.start; s <= ev.end; s++) slotColors[s] = ev.color;
+            const slotData = Array(12).fill(null).map(() => ({ color: '#333', index: -1 })); 
+            dayEvs.forEach((ev, idx) => {
+                for(let s = ev.start; s <= ev.end; s++) slotData[s] = { color: ev.color, index: idx };
             });
 
             for(let i=0; i<12; i++) {
-                let hour = i + 6;
                 let btn = document.createElement('div');
                 btn.className = 'time-btn';
-                btn.innerText = (hour < 10 ? '0'+hour : hour);
-                btn.style.backgroundColor = slotColors[i];
-                if(slotColors[i] !== '#333') btn.style.color = 'black';
-                btn.onclick = () => selectRange(i);
+                btn.innerText = (i + 6 < 10 ? '0' : '') + (i + 6);
+                btn.style.backgroundColor = slotData[i].color;
+                if(slotData[i].color !== '#333') btn.style.color = 'black';
+                
+                // 수정 모드일 때, 다른 영역은 클릭 불가 처리
+                if(editingIndex !== -1 && slotData[i].index !== -1 && slotData[i].index !== editingIndex) {
+                    btn.classList.add('disabled');
+                }
+
+                btn.onclick = () => selectRange(i, slotData[i].index);
                 box.appendChild(btn);
             }
         }
 
-        function selectRange(index) {
+        function selectRange(index, foundIdx) {
+            const btns = document.querySelectorAll('.time-btn');
+            if(btns[index].classList.contains('disabled')) return;
+
+            // 1. 이미 등록된 스케줄 클릭 시 (수정/삭제 모드 진입)
+            if(foundIdx !== -1) {
+                editingIndex = foundIdx;
+                const ev = getEvents()[currentDay][foundIdx];
+                startSlot = ev.start; endSlot = ev.end;
+                document.getElementById('ev-name').value = ev.name;
+                selectedColor = ev.color;
+                document.getElementById('mode-indicator').innerText = "수정/삭제 모드";
+                updatePickerUI();
+                return;
+            }
+
+            // 2. 새로운 영역 선택 시
+            editingIndex = -1;
+            document.getElementById('mode-indicator').innerText = "추가 모드";
             if (startSlot === null || (startSlot !== null && endSlot !== null)) {
                 startSlot = index; endSlot = null;
-                loadSelectedEvent(index);
             } else {
                 if (index < startSlot) { endSlot = startSlot; startSlot = index; } 
                 else { endSlot = index; }
             }
             updatePickerUI();
-        }
-
-        function loadSelectedEvent(index) {
-            const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const dayEvs = events[currentDay] || [];
-            const found = dayEvs.find(ev => index >= ev.start && index <= ev.end);
-            if(found) {
-                document.getElementById('ev-name').value = found.name;
-                selectedColor = found.color;
-                const cBtns = document.querySelectorAll('.color-btn');
-                cBtns.forEach(b => b.style.borderColor = (b.style.backgroundColor === found.color) ? 'white' : 'transparent');
-            }
         }
 
         function updatePickerUI() {
@@ -149,12 +160,57 @@
             });
         }
 
-        function renderCalendar() {
+        function getEvents() { return JSON.parse(localStorage.getItem(storageKey) || '{}'); }
+
+        window.saveData = function(isUpdate) {
+            const name = document.getElementById('ev-name').value;
+            if(!name || startSlot === null) return alert("시간과 내용을 입력하세요!");
+            let finalEnd = (endSlot === null) ? startSlot : endSlot;
+            
+            let events = getEvents();
+            if(!events[currentDay]) events[currentDay] = [];
+
+            // [핵심] 영역 침범 체크 (수정 중인 본인 제외)
+            const isOverlap = events[currentDay].some((ev, idx) => {
+                if(isUpdate && idx === editingIndex) return false;
+                return (startSlot <= ev.end && finalEnd >= ev.start);
+            });
+
+            if(isOverlap) return alert("이미 다른 일정이 있는 시간대입니다. 영역을 확인하세요!");
+
+            if(isUpdate && editingIndex !== -1) {
+                events[currentDay][editingIndex] = { name, start: startSlot, end: finalEnd, color: selectedColor };
+            } else {
+                events[currentDay].push({ name, start: startSlot, end: finalEnd, color: selectedColor });
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(events));
+            renderCalendar(); resetForm(); alert("저장되었습니다.");
+        };
+
+        window.deleteSpecific = function() {
+            if(editingIndex === -1) return alert("삭제할 일정을 먼저 클릭하세요.");
+            if(!confirm("정말 이 일정을 삭제하시겠습니까?")) return;
+            
+            let events = getEvents();
+            events[currentDay].splice(editingIndex, 1);
+            localStorage.setItem(storageKey, JSON.stringify(events));
+            renderCalendar(); resetForm();
+        };
+
+        window.resetForm = function() {
+            startSlot = null; endSlot = null; editingIndex = -1;
+            document.getElementById('ev-name').value = '';
+            document.getElementById('mode-indicator').innerText = "추가 모드";
+            initTimePicker();
+        };
+
+        window.renderCalendar = function() {
             const container = document.getElementById('main-calendar');
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
             const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const events = getEvents();
 
             let html = `<div class="cal-grid">`;
             ['일','월','화','수','목','금','토'].forEach(d => html += `<div style="padding:10px; text-align:center; font-size:0.75rem; color:#666;">${d}</div>`);
@@ -164,21 +220,19 @@
             for (let d = 1; d <= lastDate; d++) {
                 const dayEvs = events[d] || [];
                 let slots = Array(12).fill('#2d2d2d');
-                dayEvs.forEach(ev => {
-                    for(let s=ev.start; s<=ev.end; s++) slots[s] = ev.color;
-                });
+                dayEvs.forEach(ev => { for(let s=ev.start; s<=ev.end; s++) slots[s] = ev.color; });
                 html += `
                     <div class="cal-day" onclick="openModal(${d})">
                         <div class="day-num">${d}</div>
                         <div class="time-timeline">${slots.map(s => `<div class="slot" style="background:${s}"></div>`).join('')}</div>
-                        <div style="font-size:0.55rem; color:#444; display:flex; justify-content:space-between; margin-top:3px;">
+                        <div style="font-size:0.5rem; color:#444; display:flex; justify-content:space-between; margin-top:3px;">
                             <span>06</span><span>18</span>
                         </div>
                     </div>`;
             }
             html += `</div>`;
             container.innerHTML = html;
-        }
+        };
 
         window.openModal = function(day) {
             currentDay = day;
@@ -187,38 +241,7 @@
             resetForm();
         };
 
-        window.resetForm = function() {
-            startSlot = null; endSlot = null;
-            document.getElementById('ev-name').value = '';
-            initTimePicker();
-        };
-
-        window.saveData = function() {
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("시간과 내용을 입력하세요!");
-            let finalEnd = (endSlot === null) ? startSlot : endSlot;
-            let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if(!events[currentDay]) events[currentDay] = [];
-            events[currentDay] = events[currentDay].filter(ev => !(startSlot <= ev.end && finalEnd >= ev.start));
-            events[currentDay].push({ name, start: startSlot, end: finalEnd, color: selectedColor });
-            localStorage.setItem(storageKey, JSON.stringify(events));
-            renderCalendar(); initTimePicker(); resetForm();
-            alert("저장되었습니다.");
-        };
-
-        window.deleteSpecific = function() {
-            if(startSlot === null) return alert("삭제할 시간대를 먼저 선택하세요.");
-            if(!confirm("선택한 일정을 삭제할까요?")) return;
-            let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            if(!events[currentDay]) return;
-            let finalEnd = (endSlot === null) ? startSlot : endSlot;
-            events[currentDay] = events[currentDay].filter(ev => !(startSlot <= ev.end && finalEnd >= ev.start));
-            localStorage.setItem(storageKey, JSON.stringify(events));
-            renderCalendar(); initTimePicker(); resetForm();
-        };
-
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-
         window.selCol = function(col, el) {
             selectedColor = col;
             document.querySelectorAll('.color-btn').forEach(b => b.style.borderColor = 'transparent');
