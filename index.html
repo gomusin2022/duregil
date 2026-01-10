@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 정밀 정렬판</title>
+    <title>부평농협 둘레길 산악회 - 정밀 교정판</title>
     <style>
         :root {
             --bg-dark: #121212;
@@ -20,32 +20,37 @@
         .calendar-container { flex: 1; margin: 10px 0; border: 1px solid var(--metal-bright); background: #181818; display: flex; flex-direction: column; overflow-y: auto; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #444; }
         
-        .cal-day { background: #222; min-height: 105px; padding: 8px; cursor: pointer; border: 1px solid #181818; display: flex; flex-direction: column; justify-content: flex-start; }
+        .cal-day { background: #222; min-height: 105px; padding: 8px; cursor: pointer; border: 1px solid #181818; display: flex; flex-direction: column; }
         
-        /* [수정 핵심] 날짜와 요일을 동일한 높이(기준선)로 정렬 */
+        /* [수정 핵심] 날짜와 요일 높이 강제 일치 로직 */
         .day-header { 
             display: flex; 
-            align-items: baseline; /* 글자의 하단 기준선을 일치시킴 */
-            gap: 4px; /* 숫자와 요일 사이 간격 */
+            align-items: center; /* 일단 수직 중앙 정렬 */
+            gap: 2px;
             margin-bottom: 8px;
+            height: 1.6rem; /* 헤더 높이 고정 */
         }
         
         .day-num-text { 
-            font-size: 1.5rem; /* 숫자 크기 유지 혹은 약간 키움 */
+            font-size: 1.6rem; 
             font-weight: 900; 
-            line-height: 1; /* 줄높이 제거로 위치 틀어짐 방지 */
+            line-height: 1; /* 줄간격 간섭 제거 */
+            display: inline-block;
         }
         
         .day-name { 
-            font-size: 1rem; /* 요일 글씨 크기도 숫자에 맞춰 살짝 조정 */
+            font-size: 0.95rem; 
             font-weight: bold;
             line-height: 1;
+            /* [중요] 숫자에 비해 요일이 낮아 보일 때 위로 밀어올리는 값 */
+            margin-bottom: -2px; 
+            display: inline-block;
         }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 35px; background: #333; border-radius: 3px; overflow: hidden; margin-top: auto; }
         .slot { background: #2d2d2d; height: 100%; }
 
-        /* 팝업 및 기타 스타일 (기존 유지) */
+        /* 입력 팝업 스타일 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #252525; width: 95%; max-width: 500px; padding: 20px; border-radius: 15px; border: 2px solid var(--metal-bright); box-shadow: 0 0 50px #000; }
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 5px; }
@@ -84,7 +89,7 @@
     </div>
 
     <script>
-        const storageKey = 'dure_v12_final';
+        const storageKey = 'dure_v13_final';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = '#ff4d4d';
@@ -131,7 +136,7 @@
             container.innerHTML = html + `</div>`;
         }
 
-        // [이하 기존 로직 유지]
+        // 로직 부분
         window.openModal = function(d) {
             currentDay = d;
             const dateObj = new Date(new Date().getFullYear(), new Date().getMonth(), d);
