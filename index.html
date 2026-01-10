@@ -30,14 +30,15 @@
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
 
-        /* 버튼 변신 전용 스타일 */
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
-        .confirm-active { background: #fff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
         
-        @keyframes blink { 50% { opacity: 0.7; } }
+        /* 확인 버튼 상태 (황금색 깜빡임) */
+        .confirm-ready { background: #fff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; font-weight: 900 !important; }
+        
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
+        @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
@@ -65,11 +66,12 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
                 <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:5px; font-weight:bold; cursor:pointer;">닫기</button>
-                <button id="mode-add" onclick="handleMainBtn('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
-                <button id="mode-edit" onclick="handleMainBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
-                <button id="mode-del" onclick="handleMainBtn('del')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
+                <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
+                <button id="mode-add" onclick="handleModeBtn('add')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">추가</button>
+                <button id="mode-edit" onclick="handleModeBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">수정</button>
+                <button id="mode-del" onclick="handleModeBtn('del')" style="background:#333; color:#fff; border:none; border-radius:5px; cursor:pointer;">삭제</button>
             </div>
         </div>
     </div>
@@ -82,7 +84,7 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v10_auto';
+        const storageKey = 'nh_weather_final_v10_final';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; let map, marker, ps;
 
@@ -90,9 +92,9 @@
         function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
         function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
         
-        // [핵심] 버튼 통합 핸들러
-        function handleMainBtn(mode) {
-            // 이미 활성화된 '확인' 상태일 때 누르면 실행
+        // [핵심 로직] 국장님 아이디어 - 라디오 버튼 통합 핸들러
+        function handleModeBtn(mode) {
+            // 이미 이 모드인데 '확인' 상태라면 실행
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
                 else if (mode === 'edit' && editingIdx !== -1) saveData();
@@ -100,10 +102,11 @@
                 return;
             }
             
-            // 일반 모드 전환
+            // 모드 전환
             currentMode = mode;
+            if(mode === 'add') resetForm();
             updateBtnUI();
-            if(mode === 'add') resetForm(); else initTime(); 
+            initTime(); 
         }
 
         function updateBtnUI() {
@@ -111,13 +114,13 @@
             const editBtn = document.getElementById('mode-edit');
             const delBtn = document.getElementById('mode-del');
 
-            // 초기화
+            // 1. 초기화
             [addBtn, editBtn, delBtn].forEach(b => { 
-                b.classList.remove('radio-active', 'confirm-active', 'del-confirm-active');
-                b.innerText = b.id.split('-')[1] === 'add' ? "추가" : b.id.split('-')[1] === 'edit' ? "수정" : "삭제";
+                b.classList.remove('radio-active', 'confirm-ready', 'confirm-active', 'del-confirm-active');
+                b.innerText = b.id.includes('add') ? "추가" : b.id.includes('edit') ? "수정" : "삭제";
             });
 
-            // 현재 모드 강조
+            // 2. 현재 모드 강조 및 변신
             if (currentMode === 'add') {
                 addBtn.classList.add('radio-active');
                 if (startSlot !== null) { addBtn.innerText = "추가확인"; addBtn.classList.add('confirm-active'); }
@@ -138,11 +141,12 @@
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
+                
                 if(foundIdx !== -1) {
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color;
                     b.style.color = "#000";
                     if(isEditingThis) { b.style.outline = "3px solid gold"; b.style.zIndex = "10"; }
-                    else if (currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked');
+                    else if (currentMode !== 'add' && editingIdx !== -1) b.classList.add('locked');
                     else if (currentMode === 'add') b.classList.add('locked');
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
@@ -177,7 +181,7 @@
             });
         }
 
-        function saveData() {
+        window.saveData = function() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
@@ -190,14 +194,14 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleMainBtn('add');
-        }
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleModeBtn('add');
+        };
 
-        function deleteData() { 
+        window.deleteData = function() { 
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleMainBtn('add');
-        }
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleModeBtn('add');
+        };
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
@@ -211,9 +215,9 @@
             }
             container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
         }
-        function openModal(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; handleMainBtn('add'); }
-        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
-        function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); }
+        window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정"; document.getElementById('input-modal').style.display = 'flex'; handleModeBtn('add'); };
+        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
