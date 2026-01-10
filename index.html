@@ -9,42 +9,31 @@
         :root {
             --bg-dark: #0a0a0a; --accent-blue: #0070FF; --text-silver: #f5f5f5;
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
-            --confirm-blue: #0070FF;
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* 범용 헤더 디자인 */
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; }
         .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
         .nav-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 8px; }
-        .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
-        .nav-btn:active { transform: scale(0.95); background: #444; }
+        .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 1rem; }
         .nav-btn:disabled { opacity: 0.2; cursor: not-allowed; }
         .year-text { color: var(--accent-blue); font-weight: bold; font-size: 1.2rem; min-width: 150px; }
 
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
         .weekday-header { padding: 8px 0; text-align: center; font-size: 0.85rem; font-weight: bold; background: #111; color: #888; }
-        .cal-day { background: #0a0a0a; padding: 6px; cursor: pointer; display: flex; flex-direction: column; position: relative; transition: 0.2s; }
-        .cal-day:active { background: #1a1a1a; }
+        .cal-day { background: #0a0a0a; padding: 6px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
         .day-num { font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; color: #fff; }
 
-        /* 타임 바 - 세련된 디자인 */
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 6px; background: #151515; margin-top: auto; border-radius: 1px; overflow: hidden; }
 
-        /* 모달 디자인 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; cursor: pointer; border: 1px solid #252525; border-radius: 4px; }
+        .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
+        .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; cursor: pointer; border: 1px solid #252525; border-radius: 4px; position: relative; }
 
-        /* 메탈 버튼 공통 */
-        .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #444; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; font-size: 0.95rem; transition: 0.2s; }
-        .metal-btn:active { background: #555; }
-        
-        /* 상태별 칼라 로직 */
+        .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #444; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; font-size: 0.95rem; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
-        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; border: none !important; animation: blink 1s infinite; font-weight: 800; }
-        .del-confirm-active { background: #ff4d4d !important; color: #fff !important; border: none !important; animation: blink 1s infinite; }
+        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; font-weight: 800; }
+        .del-confirm-active { background: #ff4d4d !important; color: #fff !important; animation: blink 1s infinite; }
         
         @keyframes blink { 50% { opacity: 0.6; } }
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.15 !important; }
@@ -66,14 +55,14 @@
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 15px 0; font-weight: 400; letter-spacing: 1px;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 15px 0; font-weight: 400;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 12px; background: #000; padding: 4px; border-radius: 6px;"></div>
             <div style="display: flex; gap: 10px; margin-bottom: 20px; height: 110px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 <div class="side-btns" style="display: flex; flex-direction: column; width: 90px; gap: 6px;">
-                    <button class="metal-btn" onclick="alert('Smart update coming soon')" style="flex: 2; font-size: 0.7rem; border-radius: 6px;">SMART UPDATE</button>
-                    <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 6px; border: none;">LOCATION</button>
+                    <button class="metal-btn" onclick="alert('Coming soon')" style="flex: 2; font-size: 0.7rem;">SMART UPDATE</button>
+                    <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border: none;">LOCATION</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
@@ -87,7 +76,7 @@
 
     <div id="map-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; padding:20px; box-sizing:border-box;">
         <div id="map-container" style="width:100%; height:350px; border-radius:12px; border:1px solid #444; margin-bottom:20px;"></div>
-        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:18px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px; font-size:1.1rem;">CONFIRM LOCATION</button></div>
+        <div style="display:flex; gap:10px;"><button onclick="confirmMapLocation()" style="flex:1; padding:18px; background:var(--accent-blue); color:white; font-weight:bold; border-radius:10px; font-size:1.1rem; border:none;">CONFIRM</button></div>
     </div>
 
     <script>
@@ -135,7 +124,8 @@
             document.getElementById('input-modal').style.display = 'flex'; 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
-            currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
+            currentMode = 'add'; 
+            initPalette(); initTime(); updateBtnUI(); 
         };
 
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
@@ -210,14 +200,18 @@
             const btns = document.querySelectorAll('#time-picker div');
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            const { data } = getStore();
+            const evs = data[currentDay]?.events || [];
+
             btns.forEach((btn, idx) => { 
                 if(startSlot !== null && idx >= s && idx <= e) { 
-                    btn.style.background = selectedColor; btn.style.outline = "2px solid #fff"; btn.style.zIndex = "10"; 
+                    btn.style.background = selectedColor; 
+                    btn.style.outline = "2px solid #fff"; 
+                    btn.style.zIndex = "10"; 
                 } else { 
-                    const { data } = getStore();
-                    const evs = data[currentDay]?.events || [];
                     const found = evs.find(ev => idx >= ev.start && idx <= ev.end);
                     if (found && editingIdx === -1) btn.style.background = found.color;
+                    else btn.style.background = "#1a1a1a";
                     btn.style.outline = "none"; btn.style.zIndex = "1"; 
                 } 
             });
@@ -234,14 +228,18 @@
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
+            startSlot = null; endSlot = null; editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            updateBtnUI(); initTime();
         }
 
         function deleteData() { 
             const { key, data } = getStore();
             data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
+            startSlot = null; endSlot = null; editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            updateBtnUI(); initTime();
         }
         
         function initPalette() {
@@ -249,7 +247,13 @@
             ['#0070FF', '#FF0000', '#22C55E', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#666666', '#AAAAAA'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '28px'; d.style.borderRadius = '4px';
-                d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
+                d.onclick = () => { 
+                    selectedColor = c; 
+                    initPalette(); 
+                    // [해결!] 색상을 바꿀 때 현재 찍혀있는 시간이 있다면 즉시 다시 그려줍니다.
+                    if(startSlot !== null) updateTimeUI(); 
+                }; 
+                p.appendChild(d);
             });
         }
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); }
