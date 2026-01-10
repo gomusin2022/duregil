@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - 관리자 시스템</title>
+    <title>부평농협 둘레길 산악회 - 12분할 정밀시스템</title>
     <style>
-        /* [1. 스타일 시트: 국장님의 다크 메탈 원본 디자인 그대로] */
         :root {
             --bg-dark: #121212;
             --metal-gray: #2c2c2c;
@@ -17,218 +16,196 @@
             --point-orange: #f39c12;
         }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-silver);
-            font-family: 'Malgun Gothic', dotum, sans-serif;
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            box-sizing: border-box;
-        }
+        body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
 
-        .header {
-            text-align: center;
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--metal-bright);
-            letter-spacing: 1px;
-        }
+        .header { text-align: center; font-size: 1.1rem; font-weight: bold; padding: 10px 0; border-bottom: 1px solid var(--metal-bright); }
 
-        .calendar-container {
-            flex: 6;
-            margin: 10px 0;
-            border: 1px solid var(--metal-bright);
-            background: #181818;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+        /* [달력 레이아웃] */
+        .calendar-container { flex: 1; margin: 10px 0; border: 1px solid var(--metal-bright); background: #181818; display: flex; flex-direction: column; overflow-y: auto; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #444; }
+        
+        /* [날짜 칸 12분할 디자인] */
+        .cal-day { background: #222; min-height: 85px; padding: 3px; cursor: pointer; position: relative; border: 1px solid #181818; }
+        .day-num { font-size: 0.8rem; margin-bottom: 4px; color: #888; font-weight: bold; }
+        
+        /* 12개의 시간 슬롯 (4열 3행) */
+        .time-slots { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            grid-template-rows: repeat(3, 1fr); 
+            gap: 1.5px; 
+            height: 55px; 
         }
+        .slot { background: #2d2d2d; border-radius: 1px; height: 100%; transition: 0.2s; }
 
-        .button-section {
-            flex: 4;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .grid-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .btn-metal {
-            border: 1px solid #111;
-            background: linear-gradient(145deg, var(--metal-bright), #1a1a1a);
-            color: white;
-            font-weight: bold;
-            font-size: 1rem;
-            padding: 20px 0;
-            text-align: center;
-            cursor: pointer;
-            box-shadow: 4px 4px 10px #000, -1px -1px 2px rgba(255,255,255,0.1);
-            transition: all 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-shadow: 1px 1px 2px #000;
-        }
-
-        .btn-metal:active {
-            box-shadow: inset 4px 4px 8px #000;
-            transform: scale(0.98);
-        }
-
-        /* [달력 그리드 내부 디자인] */
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 1px;
-            background: #444;
-            border: 1px solid #444;
-        }
-
-        .cal-day {
-            background: #222;
-            min-height: 45px;
-            padding: 5px;
-            font-size: 0.8rem;
-            border: 1px solid #181818;
-            color: #ccc;
-        }
-
-        .dot {
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            margin: 1px;
-        }
+        /* [팝업 모달 스타일] */
+        #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #252525; width: 92%; max-width: 420px; padding: 25px; border-radius: 12px; border: 1px solid var(--metal-bright); box-shadow: 0 0 30px #000; }
+        
+        .btn-metal { background: linear-gradient(145deg, var(--metal-bright), #1a1a1a); color: white; border: 1px solid #111; padding: 15px; font-weight: bold; text-align: center; cursor: pointer; border-radius: 6px; margin-top: 10px; box-shadow: 3px 3px 6px #000; }
+        .btn-metal:active { transform: scale(0.98); box-shadow: inset 2px 2px 5px #000; }
+        
+        input, select { width: 100%; padding: 14px; margin-bottom: 15px; background: #111; color: white; border: 1px solid #555; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        
+        .color-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        .color-btn { flex: 1; height: 45px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        
+        .label-text { font-size: 0.85rem; color: #aaa; margin-bottom: 6px; display: block; }
     </style>
 </head>
 <body>
 
-    <div class="header">[부평농협 둘레길 산악회]</div>
+    <div class="header">[부평농협 둘레길 산악회 - 12시간 정밀모드]</div>
 
-    <div class="calendar-container" id="main-display">
-        </div>
+    <div class="calendar-container" id="main-calendar"></div>
 
-    <div class="button-section">
-        <div class="grid-row">
-            <div class="btn-metal" onclick="alert('회원 관리 준비 중')">회원 관리</div>
-            <div class="btn-metal" onclick="location.reload()">행사 / 일정</div>
-        </div>
-        <div class="grid-row">
-            <div class="btn-metal" onclick="alert('회계 관리 준비 중')">회계 관리</div>
-            <div class="btn-metal" onclick="alert('공지 문자 준비 중')">공지 문자</div>
+    <div id="input-modal">
+        <div class="modal-content">
+            <h3 id="modal-date-title" style="color:var(--point-orange); margin: 0 0 20px 0; text-align: center;">00일 일정 정밀 설정</h3>
+            
+            <span class="label-text">활동 시간대 (1시간 단위)</span>
+            <select id="ev-time" onchange="loadExistingData()">
+                <option value="0">오전 06:00 ~ 07:00</option>
+                <option value="1">오전 07:00 ~ 08:00</option>
+                <option value="2">오전 08:00 ~ 09:00</option>
+                <option value="3">오전 09:00 ~ 10:00</option>
+                <option value="4">오전 10:00 ~ 11:00</option>
+                <option value="5">오전 11:00 ~ 12:00</option>
+                <option value="6">오후 12:00 ~ 01:00</option>
+                <option value="7">오후 01:00 ~ 02:00</option>
+                <option value="8">오후 02:00 ~ 03:00</option>
+                <option value="9">오후 03:00 ~ 04:00</option>
+                <option value="10">오후 04:00 ~ 05:00</option>
+                <option value="11">오후 05:00 ~ 06:00</option>
+            </select>
+
+            <span class="label-text">행사 및 활동 내용</span>
+            <input type="text" id="ev-name" placeholder="내용을 입력하세요">
+
+            <span class="label-text">표시 색상</span>
+            <div class="color-group">
+                <div class="color-btn" id="btn-red" onclick="selCol('var(--point-red)', this)" style="background:var(--point-red); border-color:white;"></div>
+                <div class="color-btn" onclick="selCol('var(--point-green)', this)" style="background:var(--point-green);"></div>
+                <div class="color-btn" onclick="selCol('var(--point-blue)', this)" style="background:var(--point-blue);"></div>
+                <div class="color-btn" onclick="selCol('var(--point-orange)', this)" style="background:var(--point-orange);"></div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <div class="btn-metal" onclick="saveData()" style="flex:2; background:var(--point-orange); color:black;">저장하기</div>
+                <div class="btn-metal" onclick="deleteData()" style="flex:1; background:#444;">삭제</div>
+                <div class="btn-metal" onclick="closeModal()" style="flex:1;">닫기</div>
+            </div>
         </div>
     </div>
 
     <script>
-        /* [2. 자바스크립트: 국장님이 검수한 성공 로직 전체] */
-        
-        function initSchedule() {
-            const display = document.getElementById('main-display');
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            
-            // 초기 선택 색상 (빨강)
-            window.selectedColor = 'var(--point-red)';
+        let currentDay = 0;
+        let selectedColor = 'var(--point-red)';
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
 
-            display.innerHTML = `
-                <div style="padding:15px; background:#181818; height:100%; box-sizing:border-box;">
-                    <h3 style="color:var(--point-orange); margin:0 0 10px 0; text-align:center;">📅 ${year}년 ${month + 1}월 일정</h3>
-                    
-                    <div class="cal-grid">
-                        ${['일','월','화','수','목','금','토'].map(d => `<div style="background:#222; padding:5px; text-align:center; font-size:0.7rem; color:#888;">${d}</div>`).join('')}
-                        ${generateCalendarDays(year, month)}
-                    </div>
-
-                    <div style="margin-top:15px; background:#252525; padding:15px; border-radius:10px; display:flex; flex-direction:column; gap:8px;">
-                        
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="ev-name" placeholder="행사명" style="flex:2; padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
-                            <input type="number" id="ev-date" placeholder="날짜" style="flex:1; padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
-                        </div>
-                        
-                        <div style="display:flex; gap:5px; align-items:stretch;">
-                            <button onclick="saveEvent()" style="flex:1.5; background:var(--point-orange); color:black; border:none; font-weight:bold; cursor:pointer; border-radius:5px; font-size:0.9rem;">저장</button>
-                            
-                            <div onclick="selectType('var(--point-red)', this)" style="flex:1; height:45px; background:var(--point-red); border:2px solid white; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">산악회</div>
-                            <div onclick="selectType('var(--point-green)', this)" style="flex:1; height:45px; background:var(--point-green); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">기타</div>
-                            <div onclick="selectType('var(--point-blue)', this)" style="flex:1; height:45px; background:var(--point-blue); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">범방위</div>
-                            <div onclick="selectType('var(--point-orange)', this)" style="flex:1; height:45px; background:var(--point-orange); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">일반</div>
-                        </div>
-                    </div>
-
-                    <h4 style="color:#888; margin:20px 0 10px 0;">등록된 일정 목록</h4>
-                    <ul id="ev-list" style="list-style:none; padding:0; margin:0;"></ul>
-                </div>
-            `;
-            renderEvents();
-        }
-
-        function generateCalendarDays(year, month) {
+        // 달력 렌더링 (12분할 슬롯 포함)
+        function renderCalendar() {
+            const container = document.getElementById('main-calendar');
             const firstDay = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
-            let daysHtml = '';
-            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
+            const events = JSON.parse(localStorage.getItem('dure_v12') || '{}');
 
-            for (let i = 0; i < firstDay; i++) daysHtml += `<div style="background:#181818; padding:15px;"></div>`;
+            let html = `<div class="cal-grid">`;
+            ['일','월','화','수','목','금','토'].forEach(d => {
+                html += `<div style="padding:10px; text-align:center; font-size:0.75rem; color:#888;">${d}</div>`;
+            });
+
+            for (let i = 0; i < firstDay; i++) html += `<div class="cal-day" style="background:transparent; cursor:default;"></div>`;
+
             for (let d = 1; d <= lastDate; d++) {
-                const dayEvs = events.filter(e => parseInt(e.date) === d);
-                const dots = dayEvs.map(e => `<span class="dot" style="background:${e.type}"></span>`).join('');
-                daysHtml += `<div class="cal-day">${d}<br><div style="display:flex; flex-wrap:wrap;">${dots}</div></div>`;
+                const dayData = events[d] || {};
+                let slotsHtml = '';
+                // 12시간 슬롯 생성
+                for(let s=0; s<12; s++) {
+                    const color = dayData[s] ? dayData[s].color : '#2d2d2d';
+                    slotsHtml += `<div class="slot" style="background:${color}"></div>`;
+                }
+                html += `
+                    <div class="cal-day" onclick="openModal(${d})">
+                        <div class="day-num">${d}</div>
+                        <div class="time-slots">${slotsHtml}</div>
+                    </div>`;
             }
-            return daysHtml;
+            html += `</div>`;
+            container.innerHTML = html;
         }
 
-        window.selectType = function(color, el) {
-            window.selectedColor = color;
-            const btns = el.parentElement.children;
+        // 팝업 열기
+        window.openModal = function(day) {
+            currentDay = day;
+            document.getElementById('modal-date-title').innerText = `${month+1}월 ${day}일 일정 설정`;
+            document.getElementById('input-modal').style.display = 'flex';
+            loadExistingData();
+        };
+
+        // 특정 시간 데이터 로드
+        window.loadExistingData = function() {
+            const events = JSON.parse(localStorage.getItem('dure_v12') || '{}');
+            const timeIdx = document.getElementById('ev-time').value;
+            
+            if(events[currentDay] && events[currentDay][timeIdx]) {
+                document.getElementById('ev-name').value = events[currentDay][timeIdx].name;
+                selectedColor = events[currentDay][timeIdx].color;
+                updateColorUI(selectedColor);
+            } else {
+                document.getElementById('ev-name').value = '';
+            }
+        };
+
+        window.closeModal = function() {
+            document.getElementById('input-modal').style.display = 'none';
+        };
+
+        window.selCol = function(col, el) {
+            selectedColor = col;
+            updateColorUI(col);
+        };
+
+        function updateColorUI(col) {
+            const btns = document.getElementsByClassName('color-btn');
             for(let b of btns) {
-                if(b.tagName === 'DIV') b.style.border = "2px solid transparent";
+                // 색상 값이 RGB 또는 변수일 수 있으므로 배경색으로 비교
+                b.style.borderColor = 'transparent';
+                if (b.style.backgroundColor.includes(col.replace('var(','').replace(')','')) || b.style.backgroundColor === col) {
+                    b.style.borderColor = 'white';
+                }
             }
-            el.style.border = "2px solid white";
-        };
+        }
 
-        window.saveEvent = function() {
+        window.saveData = function() {
             const name = document.getElementById('ev-name').value;
-            const date = document.getElementById('ev-date').value;
-            if(!name || !date) return alert("입력 정보가 부족합니다!");
+            const timeIdx = document.getElementById('ev-time').value;
+            if(!name) return alert("활동 내용을 입력하세요");
 
-            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
-            events.push({ id: Date.now(), name, date, type: window.selectedColor });
-            localStorage.setItem('dure_evs', JSON.stringify(events));
-            initSchedule();
+            let events = JSON.parse(localStorage.getItem('dure_v12') || '{}');
+            if(!events[currentDay]) events[currentDay] = {};
+            
+            events[currentDay][timeIdx] = { name, color: selectedColor };
+            localStorage.setItem('dure_v12', JSON.stringify(events));
+            
+            renderCalendar();
+            closeModal();
         };
 
-        function renderEvents() {
-            const list = document.getElementById('ev-list');
-            const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
-            list.innerHTML = events.slice().reverse().map(e => `
-                <li style="color:white; font-size:0.85rem; margin-bottom:8px; border-left:4px solid ${e.type}; padding:10px; background:#222; display:flex; justify-content:space-between; align-items:center; border-radius:0 5px 5px 0;">
-                    <span>${e.date}일: ${e.name}</span>
-                    <button onclick="deleteEvent(${e.id})" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; font-size:0.7rem; cursor:pointer;">삭제</button>
-                </li>
-            `).join('');
-        }
+        window.deleteData = function() {
+            const timeIdx = document.getElementById('ev-time').value;
+            let events = JSON.parse(localStorage.getItem('dure_v12') || '{}');
+            if(events[currentDay]) {
+                delete events[currentDay][timeIdx];
+                localStorage.setItem('dure_v12', JSON.stringify(events));
+                renderCalendar();
+                closeModal();
+            }
+        };
 
-        window.deleteEvent = function(id) {
-            if(!confirm("정말 삭제하시겠습니까?")) return;
-            let events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
-            events = events.filter(e => e.id !== id);
-            localStorage.setItem('dure_evs', JSON.stringify(events));
-            initSchedule();
-        }
-
-        window.onload = initSchedule;
+        window.onload = renderCalendar;
     </script>
 </body>
 </html>
