@@ -58,7 +58,7 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns" style="display: flex; flex-direction: column; width: 85px; gap: 5px;">
-                    <button class="btn-auto" onclick="alert('기능 점검')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
+                    <button class="btn-auto" onclick="alert('날씨 기능 점검중')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
                     <button id="loc-btn" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지역선택</button>
                 </div>
             </div>
@@ -81,7 +81,7 @@
         function handleDelBtnClick() {
             if (currentMode !== 'del') changeRadioMode('del');
             else if (editingIdx !== -1) deleteData();
-            else alert("삭제 대상을 선택하세요.");
+            else alert("삭제할 일정을 먼저 선택하세요.");
         }
 
         function changeRadioMode(mode) {
@@ -94,7 +94,7 @@
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        // [회색 고정 코드 전면 삭제 로직]
+        // [문제의 그 부분! 완벽 교정]
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -102,27 +102,23 @@
             
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
-                
-                // 해당 슬롯에 어떤 일정이 있는지 찾기
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
-                const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
+                const isEditingThis = foundIdx !== -1 && foundIdx === editingIdx;
 
                 if(foundIdx !== -1) {
                     const target = evs[foundIdx];
-                    // 수정 중인 블록은 무조건 현재 팔레트 색상(selectedColor), 아니면 저장된 본래 색상
+                    // [교정] 회색(#333) 조건을 완전히 제거했습니다.
+                    // 고치는 중인 놈은 무조건 selectedColor, 아니면 저장된 색상 적용.
                     b.style.background = isEditingThis ? selectedColor : target.color;
                     b.style.color = "#000";
-
                     if(isEditingThis) {
                         b.style.outline = "2px solid gold";
-                        b.style.boxShadow = "inset 0 0 8px white";
-                        b.style.filter = "none"; // 강제로 본래의 선명한 색상 노출
-                    } else if (currentMode === 'edit' && editingIdx !== -1) {
-                        b.classList.add('locked'); // 수정 중 타 블록 어둡게
+                        b.style.boxShadow = "inset 0 0 5px white";
+                        b.style.zIndex = "10";
                     }
+                    if(currentMode === 'add') b.classList.add('locked');
                 } else {
-                    // 빈 칸 제어 (수정 대상이 없을 때 수정/삭제 모드라면 클릭 방지)
-                    if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
+                    if(currentMode === 'del' || (currentMode === 'edit' && editingIdx === -1)) b.classList.add('disabled');
                 }
 
                 b.onclick = () => {
@@ -135,7 +131,7 @@
                                 const delBtn = document.getElementById('mode-del');
                                 delBtn.innerText = "삭제확인"; delBtn.classList.add('del-confirm-active');
                             }
-                            initPalette(); initTime(); // 리렌더링으로 색상 갱신
+                            initPalette(); initTime();
                         }
                         return;
                     }
@@ -154,8 +150,10 @@
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             btns.forEach((btn, idx) => {
                 if(startSlot !== null && idx >= s && idx <= e) {
-                    btn.style.background = selectedColor; // 업데이트 시에도 본래 색상 사용
+                    btn.style.background = selectedColor; // 여기도 선택된 색상으로!
                     btn.style.outline = "2px solid gold";
+                } else {
+                    // 빈 칸이나 다른 블록은 initTime에서 잡은 로직 유지
                 }
             });
         }
@@ -172,8 +170,8 @@
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
             }
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            const ev = { name, start: s, end: e, color: selectedColor };
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = { name, start: s, end: e, color: selectedColor };
+            else data[currentDay].events.push({ name, start: s, end: e, color: selectedColor });
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar(); changeRadioMode('add');
         };
