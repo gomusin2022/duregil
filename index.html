@@ -41,20 +41,13 @@
 </head>
 <body>
 
-    <div class="header-container">
-        <div class="header-title">부평농협 둘레길 산악회</div>
-        <div id="year-title" class="year-text"></div>
-    </div>
-
-    <div class="calendar-container">
-        <div id="main-calendar" class="cal-grid"></div>
-    </div>
+    <div class="header-container"><div class="header-title">부평농협 둘레길 산악회</div><div id="year-title" class="year-text"></div></div>
+    <div class="calendar-container"><div id="main-calendar" class="cal-grid"></div></div>
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
             <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 15px 0;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 15px; height: 100px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
@@ -63,7 +56,6 @@
                     <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지도연결</button>
                 </div>
             </div>
-
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
                 <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:5px; font-weight:bold; cursor:pointer;">닫기</button>
                 <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold; cursor:pointer;">저장</button>
@@ -86,21 +78,14 @@
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; let map, marker, ps;
 
-        // [핵심] 모달 열기 함수 - 시작하자마자 색상/블록 그리기
         window.openModal = function(d) { 
             currentDay = d; 
             document.getElementById('modal-date-title').innerText = d + "일 일정"; 
             document.getElementById('input-modal').style.display = 'flex'; 
-            
-            // 데이터 먼저 그리고 모드 설정
-            resetForm(); 
-            initPalette(); 
-            initTime();
-            handleModeBtn('add'); 
+            resetForm(); initPalette(); initTime(); handleModeBtn('add'); 
         };
-
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        
+
         function handleModeBtn(mode) {
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
@@ -109,9 +94,10 @@
                 return;
             }
             currentMode = mode;
-            if(mode === 'add') resetForm();
-            updateBtnUI();
-            initTime(); 
+            // 모드 전환 시 내용만 초기화 (강제 이동 없음)
+            startSlot = null; endSlot = null; editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            updateBtnUI(); initTime(); 
         }
 
         function updateBtnUI() {
@@ -143,8 +129,7 @@
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
                 if(foundIdx !== -1) {
-                    b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color;
-                    b.style.color = "#000";
+                    b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color; b.style.color = "#000";
                     if(isEditingThis) { b.style.outline = "3px solid gold"; b.style.zIndex = "10"; }
                     else if (currentMode !== 'add' && editingIdx !== -1) b.classList.add('locked');
                     else if (currentMode === 'add') b.classList.add('locked');
@@ -194,13 +179,23 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleModeBtn('add');
+            localStorage.setItem(storageKey, JSON.stringify(data)); 
+            renderCalendar(); 
+            // [모드 유지] 현재 모드에서 데이터만 초기화하여 연속 작업 준비
+            startSlot = null; endSlot = null; editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            updateBtnUI(); initTime();
         };
 
         window.deleteData = function() { 
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); handleModeBtn('add');
+            localStorage.setItem(storageKey, JSON.stringify(data)); 
+            renderCalendar(); 
+            // [모드 유지] 삭제 후에도 현재 모드 유지
+            startSlot = null; endSlot = null; editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            updateBtnUI(); initTime();
         };
 
         function renderCalendar() {
@@ -217,7 +212,6 @@
         }
         
         function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; }
-
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
@@ -225,11 +219,9 @@
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const container = document.getElementById('map-container'); const options = { center: new kakao.maps.LatLng(37.503, 126.711), level: 5 }; map = new kakao.maps.Map(container, options); marker = new kakao.maps.Marker({ position: map.getCenter() }); marker.setMap(map); ps = new kakao.maps.services.Places(); }
         function searchPlace() { const keyword = document.getElementById('map-search-input').value; ps.keywordSearch(keyword, (data, status) => { if (status === kakao.maps.services.Status.OK) { const pos = new kakao.maps.LatLng(data[0].y, data[0].x); marker.setPosition(pos); map.setCenter(pos); document.getElementById('map-search-input').value = data[0].place_name; } }); }
         function confirmMapLocation() { const placeName = document.getElementById('map-search-input').value; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.location = placeName; localStorage.setItem(storageKey, JSON.stringify(data)); document.getElementById('loc-btn').innerText = placeName; document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); }
-
         window.onload = renderCalendar;
     </script>
 </body>
