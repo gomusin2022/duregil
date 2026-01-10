@@ -32,12 +32,29 @@
 
         /* [입력 팝업 모달] */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #252525; width: 95%; max-width: 450px; padding: 25px; border-radius: 12px; border: 1px solid var(--metal-bright); box-shadow: 0 0 30px #000; }
+        .modal-content { background: #252525; width: 98%; max-width: 550px; padding: 25px; border-radius: 12px; border: 1px solid var(--metal-bright); box-shadow: 0 0 30px #000; }
         
-        /* 팝업 내 시간 선택 버튼 (2행 6열) */
-        .range-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 20px; }
-        .time-btn { background: #333; border: 1px solid #555; color: #aaa; padding: 12px 0; text-align: center; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
-        .time-btn.selected { background: var(--point-orange); color: black; font-weight: bold; border-color: white; }
+        /* [핵심: 시간 선택 버튼 가로 한 줄 배치] */
+        .range-picker { 
+            display: grid; 
+            grid-template-columns: repeat(12, 1fr); 
+            gap: 2px; 
+            margin-bottom: 25px; 
+            background: #111;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .time-btn { 
+            background: #333; 
+            border: none; 
+            color: #777; 
+            padding: 15px 0; 
+            text-align: center; 
+            font-size: 0.65rem; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
+        .time-btn.selected { background: var(--point-orange); color: black; font-weight: bold; }
 
         input { width: 100%; padding: 14px; margin-bottom: 20px; background: #111; color: white; border: 1px solid #555; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         
@@ -50,22 +67,22 @@
 </head>
 <body>
 
-    <div class="header">[부평농협 산악회 - 06시~18시 정밀관리]</div>
+    <div class="header">[부평농협 산악회 - 가로 한줄 정밀관리]</div>
 
     <div class="calendar-container" id="main-calendar"></div>
 
     <div id="input-modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="color:var(--point-orange); margin: 0 0 20px 0; text-align: center;">날짜별 범위 설정</h3>
+            <h3 id="modal-date-title" style="color:var(--point-orange); margin: 0 0 20px 0; text-align: center;">시간 범위 설정</h3>
             
-            <p style="font-size:0.85rem; color:#888; margin-bottom:10px; text-align:center;">시작 시간과 종료 시간을 차례로 클릭하세요</p>
-            <div class="range-picker" id="time-range-box">
-                </div>
+            <p style="font-size:0.8rem; color:#888; margin-bottom:10px; text-align:center;">06시 ~ 18시 (시작과 끝 버튼 클릭)</p>
+            
+            <div class="range-picker" id="time-range-box"></div>
 
-            <input type="text" id="ev-name" placeholder="행사 내용을 입력하세요 (예: 계룡산 산행)">
+            <input type="text" id="ev-name" placeholder="행사 내용 입력">
 
             <div class="color-group">
-                <div class="color-btn" id="def-col" onclick="selCol('var(--point-red)', this)" style="background:var(--point-red); border-color:white;"></div>
+                <div class="color-btn" onclick="selCol('var(--point-red)', this)" style="background:var(--point-red); border-color:white;"></div>
                 <div class="color-btn" onclick="selCol('var(--point-green)', this)" style="background:var(--point-green);"></div>
                 <div class="color-btn" onclick="selCol('var(--point-blue)', this)" style="background:var(--point-blue);"></div>
                 <div class="color-btn" onclick="selCol('var(--point-orange)', this)" style="background:var(--point-orange);"></div>
@@ -88,7 +105,6 @@
         const year = now.getFullYear();
         const month = now.getMonth();
 
-        // [1] 시간 선택기 초기화 (06시~18시)
         function initTimePicker() {
             const box = document.getElementById('time-range-box');
             box.innerHTML = '';
@@ -96,7 +112,7 @@
                 let hour = i + 6;
                 let btn = document.createElement('div');
                 btn.className = 'time-btn';
-                btn.innerText = (hour < 10 ? '0'+hour : hour) + '시';
+                btn.innerText = (hour < 10 ? '0'+hour : hour);
                 btn.onclick = () => selectRange(i);
                 box.appendChild(btn);
             }
@@ -126,12 +142,11 @@
             });
         }
 
-        // [2] 달력 렌더링
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const firstDay = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
-            const events = JSON.parse(localStorage.getItem('dure_range_v2') || '{}');
+            const events = JSON.parse(localStorage.getItem('dure_final_v1') || '{}');
 
             let html = `<div class="cal-grid">`;
             ['일','월','화','수','목','금','토'].forEach(d => html += `<div style="padding:10px; text-align:center; font-size:0.75rem; color:#666;">${d}</div>`);
@@ -158,7 +173,6 @@
             container.innerHTML = html;
         }
 
-        // [3] 로직 처리
         window.openModal = function(day) {
             currentDay = day;
             startSlot = null; endSlot = null;
@@ -179,21 +193,18 @@
         window.saveData = function() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 정확히 지정하세요!");
-            
             let finalEnd = (endSlot === null) ? startSlot : endSlot;
-            let events = JSON.parse(localStorage.getItem('dure_range_v2') || '{}');
+            let events = JSON.parse(localStorage.getItem('dure_final_v1') || '{}');
             if(!events[currentDay]) events[currentDay] = [];
-            
-            // 하루에 여러 일정을 겹치지 않게 관리하거나 추가 가능
             events[currentDay].push({ name, start: startSlot, end: finalEnd, color: selectedColor });
-            localStorage.setItem('dure_range_v2', JSON.stringify(events));
+            localStorage.setItem('dure_final_v1', JSON.stringify(events));
             renderCalendar(); closeModal();
         };
 
         window.deleteData = function() {
-            let events = JSON.parse(localStorage.getItem('dure_range_v2') || '{}');
+            let events = JSON.parse(localStorage.getItem('dure_final_v1') || '{}');
             delete events[currentDay];
-            localStorage.setItem('dure_range_v2', JSON.stringify(events));
+            localStorage.setItem('dure_final_v1', JSON.stringify(events));
             renderCalendar(); closeModal();
         };
 
