@@ -12,20 +12,12 @@
             --text-silver: #f0f0f0;
             --sat-blue: #4da6ff;
             --sun-red: #ff4d4d;
-            --rain-blue: #00d4ff; /* 강수확률 및 우산 색상 */
+            --rain-blue: #00d4ff; /* 강수확률 및 우산 통일 색상 */
             --metal-button: #2a2a2a;
         }
 
-        body { 
-            background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; 
-            margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
-        }
-
-        .header-container {
-            text-align: center; padding: 8px 0; background: linear-gradient(145deg, #0d2a0d, #051405);
-            border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0;
-        }
-        
+        body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .header-container { text-align: center; padding: 8px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
         .header-title { font-size: 1.8rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; }
 
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
@@ -33,38 +25,32 @@
         .weekday-header { padding: 5px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
 
         .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; }
-        
         .cal-day.other-month { background: #040c04; cursor: default; opacity: 1; }
         .cal-day.other-month .day-num-text { color: #333 !important; }
 
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
 
-        /* 날씨 3단 레이아웃 및 아이콘 크기 조정 */
-        .weather-display { 
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            width: 100%;
-            line-height: 1.1;
-        }
-        
+        /* [수정 핵심] 날씨 3단 레이아웃 및 우산 색상 강제 지정 */
+        .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
         
-        /* [수정] 우산 색상을 강수확률과 통일하고 크기를 키움 */
-        .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; }
-        .we-row-2 .umbrella { 
-            color: var(--rain-blue); 
-            font-size: 1.1rem; /* 우산 크기 확대 */
-            margin-right: 1px;
+        .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
+        
+        /* 우산 아이콘: 강수확률과 동일한 하늘색 적용 및 크기 확대 */
+        .umbrella-icon { 
+            color: var(--rain-blue) !important; 
+            font-size: 1.2rem; 
+            font-style: normal;
+            -webkit-text-fill-color: var(--rain-blue); /* 일부 모바일 브라우저 색상 강제 고정 */
         }
-        .we-row-2 .pop-text { color: var(--rain-blue); font-size: 0.8rem; }
+        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
 
         .we-row-3 { font-size: 0.75rem; color: #bbb; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
 
         .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 모달 스타일 */
+        /* 모달 창 */
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px; }
@@ -111,14 +97,14 @@
     </div>
 
     <script>
-        const storageKey = 'dure_final_v27_umbrella';
+        const storageKey = 'dure_final_unified_v1';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
+            const now = new Date(); const year = 2026; const month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month + 1}월`;
 
             const firstDayIdx = new Date(year, month, 1).getDay();
@@ -147,8 +133,8 @@
                             <div class="weather-display">
                                 <div class="we-row-1">${we.low ? we.low+'/'+we.high : ''}</div>
                                 <div class="we-row-2">
-                                    ${isRainy ? '<span class="umbrella">☔</span>' : (we.state ? we.state.split(' ')[0] : '')}
-                                    <span class="pop-text">${we.pop ? we.pop : ''}</span>
+                                    ${isRainy ? '<i class="umbrella-icon">☔</i>' : (we.state ? we.state.split(' ')[0] : '')}
+                                    <span class="pop-text">${we.pop || ''}</span>
                                 </div>
                                 <div class="we-row-3">${we.wind||''} ${we.dust||''}</div>
                             </div>
