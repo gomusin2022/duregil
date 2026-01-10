@@ -78,6 +78,9 @@
     <div id="map-overlay">
         <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:20px; text-align:center;">날씨 위치 설정</div>
         <input type="text" id="loc-search" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="장소 입력">
+        <div style="flex:1; background:#111; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#555; text-align:center; padding:20px;">
+            한글 지역명을 입력하고 [위치확정]을 누르세요.
+        </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button onclick="confirmLocation()" style="flex:1; padding:15px; background:var(--nh-gold); font-weight:bold; border:none; border-radius:8px;">위치확정 및 복귀</button>
             <button onclick="document.getElementById('map-overlay').style.display='none'" style="flex:1; padding:15px; background:#444; color:#fff; border:none; border-radius:8px;">취소</button>
@@ -88,94 +91,55 @@
         const storageKey = 'nh_weather_final_v8';
         const apiKey = 'b1eb3292419409f920f69d35c59f0f90';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; 
+        let currentMode = 'add'; // 'add', 'edit', 'del'
 
-        // [라디오 버튼 핵심 로직]
+        // [라디오 모드 변경]
         function changeRadioMode(mode) {
             currentMode = mode;
-            // 유아이 모양 보존을 위해 클래스만 토글
+            // 버튼 상태 시각화
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
             document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
 
-            if(mode === 'add') {
-                editingIdx = -1; startSlot = null; endSlot = null;
-                document.getElementById('ev-name').value = '';
-                document.getElementById('save-btn').innerText = "저장";
-            } else if(mode === 'edit') {
-                document.getElementById('save-btn').innerText = "수정완료";
-            } else {
-                document.getElementById('save-btn').innerText = "삭제수행";
-            }
-            initTime(); 
+            if(mode === 'add') resetForm();
+            else initTime(); // 모드 전환 시 시간 버튼 새로고침
         }
 
-        function initTime() {
-            const t = document.getElementById('time-picker'); t.innerHTML = '';
+        async function getRealWeather() {
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            const evs = data[currentDay]?.events || [];
-            
-            for(let i=0; i<12; i++) {
-                const b = document.createElement('div'); b.className = 'time-btn'; 
-                b.innerText = (i+6).toString().padStart(2,'0');
-                const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
-                const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
-
-                if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
-                else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; b.style.outline = "2px solid gold"; }
-
-                if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
-
-                b.onclick = () => {
-                    if(currentMode !== 'add' && otherEvIdx !== -1) {
-                        editingIdx = otherEvIdx; 
-                        const e = evs[otherEvIdx];
-                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                        document.getElementById('ev-name').value = e.name;
-                        initPalette(); initTime(); return;
-                    }
-                    if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
-                        if(otherEvIdx !== -1) return;
-                        if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
-                        updateTimeUI();
-                    }
-                };
-                t.appendChild(b);
-            }
+            const targetLoc = data[currentDay]?.weather?.location;
+            if(!targetLoc) return alert("지역선택을 먼저 해주세요!");
+            const btn = document.getElementById('fetch-btn');
+            btn.innerText = "조회중..";
+            const cityMap = { "인천": "Incheon", "서울": "Seoul", "부평": "Incheon" };
+            const query = cityMap[targetLoc] || targetLoc;
+            try {
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apiKey}&units=metric`);
+                const w = await res.json();
+                if(w.cod !== 200) throw new Error();
+                const newWeather = { location: targetLoc, low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max), pop: w.main.humidity + "%", state: "☀️" };
+                if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+                data[currentDay].weather = newWeather;
+                localStorage.setItem(storageKey, JSON.stringify(data));
+                renderCalendar(); btn.innerText = "완료"; setTimeout(()=> btn.innerHTML = "자동<br>날씨", 1000);
+            } catch(e) { alert("조회 실패. 영문 지명을 시도해보세요."); btn.innerHTML = "자동<br>날씨"; }
         }
 
-        window.saveData = function() {
-            if(currentMode === 'del') { deleteData(); return; }
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
+        function confirmLocation() {
+            const loc = document.getElementById('loc-search').value;
+            if(!loc) return alert("장소를 입력하세요.");
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
-            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = { name, start: s, end: e, color: selectedColor };
-            else data[currentDay].events.push({ name, start: s, end: e, color: selectedColor });
+            data[currentDay].weather.location = loc;
             localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); changeRadioMode('add');
-        };
-
-        window.deleteData = function() {
-            if(editingIdx === -1) return alert("삭제할 일정을 먼저 선택하세요.");
-            if(!confirm("삭제하시겠습니까?")) return;
-            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-            data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data));
-            renderCalendar(); changeRadioMode('add');
-        };
-
-        window.openModal = function(d) {
-            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
-            document.getElementById('input-modal').style.display = 'flex';
-            changeRadioMode('add');
-        };
+            document.getElementById('loc-btn').innerText = loc;
+            document.getElementById('map-overlay').style.display='none';
+            renderCalendar();
+        }
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const year = 2026, month = 0;
+            const now = new Date(); const year = 2026, month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
             const firstIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month+1, 0).getDate();
@@ -193,30 +157,113 @@
                 html += `<div class="cal-day" onclick="openModal(${d})">
                     <div style="display:flex; justify-content:space-between; pointer-events:none;">
                         <div class="day-num" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
-                        <div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div>
+                        <div class="weather-box">
+                            <div class="w-loc">${dData.weather?.location || ''}</div>
+                            <div class="w-temp">${dData.weather?.low !== undefined ? dData.weather.low+'/'+dData.weather.high : ''}</div>
+                        </div>
                     </div>
                     <div class="time-bar">${barHtml}</div>
                 </div>`;
             }
             container.innerHTML = html;
         }
-        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        function updateTimeUI() {
-            const btns = document.querySelectorAll('#time-picker div');
+
+        window.saveData = function() {
+            if(currentMode === 'del') {
+                deleteData(); return;
+            }
+            const name = document.getElementById('ev-name').value;
+            if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) btn.style.outline = "2px solid gold"; else btn.style.outline = "none"; });
-        }
+            const ev = { name, start: s, end: e, color: selectedColor };
+            
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
+            else (data[currentDay].events = data[currentDay].events || []).push(ev);
+            
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar();
+            const sBtn = document.getElementById('save-btn');
+            sBtn.innerText = "저장완료";
+            sBtn.style.background = "var(--nh-green)";
+            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; changeRadioMode('add'); }, 700);
+        };
+
+        window.openModal = function(d) {
+            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
+            document.getElementById('input-modal').style.display = 'flex';
+            changeRadioMode('add'); // 항상 추가 모드로 시작
+        };
+
+        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
+
+        window.resetForm = function() { 
+            startSlot=null; endSlot=null; editingIdx=-1; 
+            document.getElementById('ev-name').value=''; 
+            document.getElementById('save-btn').innerText = "저장";
+            initPalette(); initTime(); 
+        };
+
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
-                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
+                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); }; p.appendChild(d);
             });
         }
-        window.getRealWeather = function() { /* 생략 */ };
-        window.confirmLocation = function() { /* 생략 */ };
+
+        function initTime() {
+            const t = document.getElementById('time-picker'); t.innerHTML = '';
+            const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            const evs = data[currentDay]?.events || [];
+            for(let i=0; i<12; i++) {
+                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
+                const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
+                const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
+                
+                if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
+                else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; }
+
+                // [라디오 모드별 빈 칸 클릭 제어]
+                if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
+
+                b.onclick = () => {
+                    // 수정/삭제 모드일 때 기존 일정 클릭
+                    if(currentMode !== 'add' && otherEvIdx !== -1) { 
+                        editingIdx = otherEvIdx; const e = evs[otherEvIdx];
+                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
+                        document.getElementById('ev-name').value = e.name;
+                        initPalette(); initTime(); return;
+                    }
+                    
+                    // 수정 모드 중 내 일정 시간 변경 허용 / 추가 모드일 때 빈 칸 클릭
+                    if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
+                        if(otherEvIdx !== -1) return; // 다른 일정 영역은 클릭 불가
+                        if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
+                    }
+                    
+                    document.querySelectorAll('#time-picker div').forEach((btn, idx) => {
+                        const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
+                        const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+                        btn.style.outline = (startSlot !== null && idx >= s && idx <= e) ? '2px solid gold' : 'none';
+                    });
+                };
+                t.appendChild(b);
+            }
+        }
+
+        window.deleteData = function() { 
+            if(editingIdx === -1) return alert("삭제할 일정을 먼저 선택하세요.");
+            if(!confirm("이 일정을 삭제하시겠습니까?")) return;
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            data[currentDay].events.splice(editingIdx, 1);
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar(); changeRadioMode('add');
+        };
+
         window.onload = renderCalendar;
     </script>
 </body>
