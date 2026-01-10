@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>부평농협 둘레길 산악회 - 스마트 전산</title>
+    <title>부평농협 둘레길 산악회 - 위치 기반 전산</title>
     <style>
         :root {
             --bg-dark: #0a1a0a;
@@ -17,77 +17,48 @@
             --wind-strong: #bf00ff;
             --dust-good: #00ff00;
             --dust-bad: #ff8000;
-            --metal-button: #2a2a2a;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .header-container { 
-            text-align: center; 
-            padding: 12px 0 0 0; 
-            background: linear-gradient(145deg, #0d2a0d, #051405); 
-            border: 2px solid var(--nh-gold); 
-            border-radius: 8px; 
-            flex-shrink: 0; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 10;
-        }
-        
+        .header-container { text-align: center; padding: 12px 0 0 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
         .header-title { font-size: 2.1rem; font-weight: 900; color: var(--nh-gold); text-shadow: 2px 2px 4px #000; margin: 0; line-height: 1.1; }
-        .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.25rem; letter-spacing: 1px; margin-top: 15px; margin-bottom: 8px; line-height: 1; }
+        .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.25rem; margin-top: 15px; margin-bottom: 8px; line-height: 1; }
 
-        .calendar-container { 
-            flex: 1; 
-            margin-top: 10px; 
-            display: flex; 
-            flex-direction: column; 
-            background: #051405; 
-            border: 1px solid var(--nh-green); 
-            overflow: hidden; 
-            position: relative;
-            z-index: 20; 
-        }
-
+        .calendar-container { flex: 1; margin-top: 10px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; position: relative; z-index: 20; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); height: 100%; gap: 1px; background: #1a331a; }
         .weekday-header { padding: 6px 0; text-align: center; font-size: 1rem; font-weight: 900; background: #082008; }
-
-        .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; pointer-events: auto !important; }
-        .cal-day.other-month { background: #040c04; cursor: default; }
-        .cal-day.other-month .day-num-text { color: #333 !important; }
-
+        .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start; position: relative; min-height: 0; }
         .day-num-text { font-size: 1.5rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
-        .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
-        .we-row-1 { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
-        .we-row-2 { font-size: 0.8rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 2px; }
-        
-        /* [재교정] 입체적인 실버 그레이 구름 필터 */
-        .cloud-icon { 
-            display: inline-block; 
-            font-size: 1.35rem; 
-            font-style: normal; 
-            /* 촌스럽지 않은 메탈릭한 회색빛을 내기 위한 정밀 필터 */
-            filter: grayscale(100%) brightness(0.8) contrast(1.2) drop-shadow(1px 1px 1px rgba(0,0,0,0.8));
-            -webkit-text-fill-color: #a0a0a0; /* 세련된 중간 톤 회색 */
-        }
 
-        .umbrella-icon { display: inline-block; font-size: 1.25rem; font-style: normal; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
-        .pop-text { color: var(--rain-blue); font-size: 0.85rem; }
-        .we-row-3 { font-size: 0.75rem; white-space: nowrap; letter-spacing: -1px; font-weight: bold; }
+        /* [핵심 수정] 날씨 4단 레이아웃 */
+        .weather-display { display: flex; flex-direction: column; align-items: flex-end; width: 100%; line-height: 1.1; }
         
-        .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 12px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
+        /* 1단: 위치 (국장님 요청대로 맨 윗줄) */
+        .we-loc { font-size: 0.75rem; color: #fff; font-weight: bold; background: rgba(0, 104, 55, 0.5); padding: 0 2px; border-radius: 2px; margin-bottom: 1px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        /* 2단: 최고/최저 */
+        .we-temp { font-size: 0.85rem; color: var(--nh-gold); font-weight: bold; }
+        
+        /* 3단: 아이콘/확률 */
+        .we-main { font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 2px; }
+        .umbrella-icon { display: inline-block; font-size: 1.1rem; filter: grayscale(100%) sepia(100%) hue-rotate(155deg) saturate(600%) brightness(110%); }
+        .cloud-icon { display: inline-block; font-size: 1.2rem; filter: brightness(1.2) contrast(1.1); -webkit-text-fill-color: #a0a0a0; }
+        .pop-text { color: var(--rain-blue); font-size: 0.8rem; }
+
+        /* 4단: 바람/먼지 */
+        .we-sub { font-size: 0.7rem; white-space: nowrap; letter-spacing: -1.2px; font-weight: bold; }
+
+        .time-timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 10px; background: #051405; border-radius: 2px; overflow: hidden; margin-top: auto; }
         .slot { background: #1a2a1a; height: 100%; }
 
-        /* 입력 모달 (동일) */
+        /* 버튼 및 입력창 */
+        .weather-btn-area { display: flex; flex-direction: column; width: 70px; gap: 4px; flex-shrink: 0; }
+        .btn-auto { flex: 2; background: var(--nh-gold); color: #000; font-weight: bold; border: 1px solid #fff; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .btn-loc { flex: 1; background: #fff; color: #006837; font-weight: bold; border: 1px solid var(--nh-gold); border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 95%; max-width: 500px; padding: 20px; border-radius: 12px; border: 3px solid var(--nh-gold); }
-        .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .btn { padding: 12px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; border: 1px solid #444; background: var(--metal-button); color: var(--text-silver); font-size: 0.85rem; }
-        .input-row { display: flex; gap: 8px; margin-bottom: 15px; height: 85px; }
-        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; height: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0; }
-        .ev-input { flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px; }
-        .btn-weather-fetch { width: 65px; height: 85px; background: var(--nh-gold); color: #000; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -103,32 +74,38 @@
 
     <div id="input-modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 10px 0; font-size: 1.3rem;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin-bottom:10px;"></h3>
             <div id="time-range-box" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
-            <div class="input-row">
-                <div class="color-grid-9" id="color-palette"></div>
-                <textarea id="ev-name" class="ev-input" placeholder="일정 입력"></textarea>
-                <button class="btn-weather-fetch" onclick="quickWeatherAndSave()">자동<br>날씨</button>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 15px; height: 100px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 2px; background: #000; padding: 2px; flex-shrink: 0;" id="color-palette"></div>
+                <textarea id="ev-name" style="flex: 1; background: #051405; border: 1px solid var(--nh-gold); color: white; padding: 8px; font-size: 1rem; resize: none; border-radius: 5px;" placeholder="일정 및 장소 입력"></textarea>
+                
+                <div class="weather-btn-area">
+                    <button class="btn-auto" onclick="cycleWeather()">자동<br>날씨</button>
+                    <button class="btn-loc" onclick="applyLocation()">위치<br>지정</button>
+                </div>
             </div>
-            <div class="action-btns">
-                <div class="btn" onclick="resetForm()">추가</div>
-                <div class="btn" onclick="saveData(false)">저장</div>
-                <div class="btn" onclick="saveData(true)">수정</div>
-                <div class="btn" onclick="deleteSpecific()">삭제</div>
-                <div class="btn" style="border-color: var(--nh-gold);" onclick="closeModal()">완료</div>
+
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;">
+                <button style="padding:12px 0; background:#2a2a2a; color:#fff; border:1px solid #444; border-radius:5px;" onclick="resetForm()">추가</button>
+                <button style="padding:12px 0; background:#2a2a2a; color:#fff; border:1px solid #444; border-radius:5px;" onclick="saveData(false)">저장</button>
+                <button style="padding:12px 0; background:#2a2a2a; color:#fff; border:1px solid #444; border-radius:5px;" onclick="saveData(true)">수정</button>
+                <button style="padding:12px 0; background:#2a2a2a; color:#fff; border:1px solid #444; border-radius:5px;" onclick="deleteSpecific()">삭제</button>
+                <button style="padding:12px 0; background:none; color:var(--nh-gold); border:1px solid var(--nh-gold); border-radius:5px;" onclick="closeModal()">완료</button>
             </div>
         </div>
     </div>
 
     <script>
-        const storageKey = 'dure_final_v34_silvercloud';
+        const storageKey = 'dure_final_v4layer';
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const colors9 = ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'];
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1, selectedColor = colors9[0];
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
-            const now = new Date(); const year = 2026; const month = 0;
+            const year = 2026; const month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month + 1}월`;
 
             const firstDayIdx = new Date(year, month, 1).getDay();
@@ -151,7 +128,8 @@
                 if(we.state) {
                     if(we.state.includes('비')) weatherIcon = '<i class="umbrella-icon">☔</i>';
                     else if(we.state.includes('흐림')) weatherIcon = '<i class="cloud-icon">☁️</i>';
-                    else weatherIcon = we.state.split(' ')[0];
+                    else if(we.state.includes('눈')) weatherIcon = '❄️';
+                    else weatherIcon = '☀️';
                 }
 
                 let windColor = we.wind === '강풍' ? 'var(--wind-strong)' : 'var(--wind-mild)';
@@ -162,9 +140,10 @@
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; pointer-events: none;">
                             <div class="day-num-text" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
                             <div class="weather-display">
-                                <div class="we-row-1">${we.low ? we.low+'/'+we.high : ''}</div>
-                                <div class="we-row-2">${weatherIcon} <span class="pop-text">${we.pop || ''}</span></div>
-                                <div class="we-row-3">
+                                <div class="we-loc">${we.location || ''}</div>
+                                <div class="we-temp">${we.low ? we.low+'/'+we.high : ''}</div>
+                                <div class="we-main">${weatherIcon} <span class="pop-text">${we.pop || ''}</span></div>
+                                <div class="we-sub">
                                     <span style="color:${windColor}">${we.wind||''}</span>
                                     <span style="color:${dustColor}">${we.dust||''}</span>
                                 </div>
@@ -178,19 +157,34 @@
             container.innerHTML = html;
         }
 
-        let wCount = 0;
-        function quickWeatherAndSave() {
-            const skyArr = ["☀️ 맑음", "☁️ 흐림", "☔ 비", "❄️ 눈"];
-            const rainPercents = ["0%", "30%", "80%", "10%"];
-            const windArr = ["미풍", "강풍", "미풍", "미풍"];
-            const dustArr = ["좋음", "나쁨", "보통", "좋음"];
-            const weData = { state: skyArr[wCount % 4], pop: rainPercents[wCount % 4], low: 2 + (wCount % 5), high: 12 + (wCount % 6), wind: windArr[wCount % 4], dust: dustArr[wCount % 4] };
+        /* [수정] 위치 지정 및 자동 날씨 통합 기능 */
+        window.applyLocation = function() {
+            const loc = document.getElementById('ev-name').value;
+            if(!loc) return alert("장소 이름을 먼저 입력하세요.");
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            data[currentDay].weather = weData;
+            data[currentDay].weather.location = loc;
             localStorage.setItem(storageKey, JSON.stringify(data));
-            wCount++; renderCalendar();
-        }
+            renderCalendar();
+        };
+
+        const weatherOptions = [
+            { state: "☀️ 맑음", pop: "0%", low: 2, high: 12, wind: "미풍", dust: "좋음" },
+            { state: "☁️ 흐림", pop: "20%", low: 4, high: 10, wind: "미풍", dust: "보통" },
+            { state: "☔ 비", pop: "80%", low: 5, high: 8, wind: "강풍", dust: "좋음" }
+        ];
+        let weatherIdx = 0;
+        window.cycleWeather = function() {
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+            const loc = data[currentDay].weather.location || "";
+            data[currentDay].weather = { ...weatherOptions[weatherIdx % 3], location: loc };
+            weatherIdx++;
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar();
+        };
+
+        /* 기본 로직 (모달, 저장 등) */
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정 관리"; document.getElementById('input-modal').style.display = 'flex'; resetForm(); };
         window.saveData = function(isUpdate) {
             const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("입력 오류");
@@ -215,7 +209,7 @@
             dayEvs.forEach((ev, i) => { for(let s=ev.start; s<=ev.end; s++) slotData[s] = { color: ev.color, idx: i }; });
             for(let i=0; i<12; i++) {
                 const btn = document.createElement('div'); btn.className = 'time-btn'; btn.innerText = (i+6).toString().padStart(2, '0');
-                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:10px 0; text-align:center; font-size:0.75rem; cursor:pointer; border:none;`;
+                btn.style.cssText = `background:${slotData[i].color}; color:${slotData[i].color==='#111'?'#555':'#000'}; padding:8px 0; text-align:center; font-size:0.75rem; cursor:pointer; border:none;`;
                 btn.onclick = () => {
                     if(slotData[i].idx !== -1) { editingIndex = slotData[i].idx; const ev = dayEvs[editingIndex]; startSlot = ev.start; endSlot = ev.end; document.getElementById('ev-name').value = ev.name; selectedColor = ev.color; initPalette(); }
                     else { if (startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { if (i < startSlot) { endSlot = startSlot; startSlot = i; } else { endSlot = i; } } }
