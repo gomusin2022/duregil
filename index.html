@@ -9,7 +9,6 @@
         :root {
             --bg-dark: #0a1a0a; --nh-green: #006837; --nh-gold: #d4af37; --text-silver: #f0f0f0;
             --sat-blue: #4da6ff; --sun-red: #ff4d4d; --rain-blue: #00d4ff;
-            /* 메탈 다크 그레이 정의 */
             --metal-gradient: linear-gradient(145deg, #555555, #333333);
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -29,7 +28,6 @@
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; position: relative; }
 
-        /* 하단 버튼 통합 메탈 스타일 */
         .metal-btn { 
             background: var(--metal-gradient); 
             color: #fff; 
@@ -44,10 +42,9 @@
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
 
-        /* 강조 상태 색상 */
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; }
-        .confirm-active { background: #ffffff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
+        .confirm-active { background: #ffffff !important; color: #000000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
         
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
@@ -61,7 +58,7 @@
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 15px 0;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 15px 0; font-size: 1.1rem;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; height: 100px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
@@ -89,15 +86,23 @@
 
     <script>
         const storageKey = 'nh_weather_final_v10_final';
+        const year = 2026, month = 0; // 2026년 1월
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
         let currentMode = 'add'; let map, marker, ps;
 
         window.openModal = function(d) { 
             currentDay = d; 
-            document.getElementById('modal-date-title').innerText = d + "일 일정"; 
+            // [업데이트] 요일 계산 로직
+            const week = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayOfWeek = week[new Date(year, month, d).getDay()];
+            
+            // 제목에 연/월/일/요일 표시
+            document.getElementById('modal-date-title').innerText = `${year}년 ${month+1}월 ${d}일 (${dayOfWeek}) 일정`; 
+            
             document.getElementById('input-modal').style.display = 'flex'; 
             resetForm(); initPalette(); initTime(); handleModeBtn('add'); 
         };
+
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
 
         function handleModeBtn(mode) {
@@ -211,13 +216,14 @@
             const container = document.getElementById('main-calendar');
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             let html = ''; ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
-            for(let i=0; i<new Date(2026,0,1).getDay(); i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
-            for(let d=1; d<=31; d++) {
+            for(let i=0; i<new Date(year, month, 1).getDay(); i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
+            const lastDate = new Date(year, month+1, 0).getDate();
+            for(let d=1; d<=lastDate; d++) {
                 const dData = data[d] || { events: [] };
-                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = dData.events.find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
+                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
             }
-            container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
+            container.innerHTML = html; document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
         }
         
         function resetForm() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; }
