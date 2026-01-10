@@ -11,6 +11,7 @@
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; }
         .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
         .nav-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 8px; }
@@ -28,7 +29,7 @@
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
-        .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; cursor: pointer; border: 1px solid #252525; border-radius: 4px; position: relative; }
+        .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; cursor: default; border: 1px solid #252525; border-radius: 4px; position: relative; }
 
         .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #444; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; font-size: 0.95rem; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
@@ -36,8 +37,10 @@
         .del-confirm-active { background: #ff4d4d !important; color: #fff !important; animation: blink 1s infinite; }
         
         @keyframes blink { 50% { opacity: 0.6; } }
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.15 !important; }
-        .time-btn.disabled { opacity: 0.1; cursor: default; }
+
+        /* [수정] 금지 표시 대신 화살표 유지, 선명도 유지 */
+        .time-btn.locked { cursor: default !important; }
+        .time-btn.disabled { opacity: 0.3; cursor: default; }
     </style>
 </head>
 <body>
@@ -61,7 +64,7 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 <div class="side-btns" style="display: flex; flex-direction: column; width: 90px; gap: 6px;">
-                    <button class="metal-btn" onclick="alert('Coming soon')" style="flex: 2; font-size: 0.7rem;">SMART UPDATE</button>
+                    <button class="metal-btn" onclick="alert('Syncing...')" style="flex: 2; font-size: 0.7rem;">SYNC DATA</button>
                     <button id="loc-btn" onclick="openMap()" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border: none;">LOCATION</button>
                 </div>
             </div>
@@ -80,7 +83,7 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v11_';
+        const storageKeyPrefix = 'smart_v13_';
         const baseDate = new Date(2026, 0, 1);
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
@@ -124,8 +127,7 @@
             document.getElementById('input-modal').style.display = 'flex'; 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
-            currentMode = 'add'; 
-            initPalette(); initTime(); updateBtnUI(); 
+            currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
         };
 
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
@@ -169,11 +171,11 @@
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
+                
                 if(foundIdx !== -1) {
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color; b.style.color = "#000";
                     if(isEditingThis) { b.style.outline = "2px solid #fff"; b.style.zIndex = "10"; }
-                    else if (currentMode !== 'add' && editingIdx !== -1) b.classList.add('locked');
-                    else if (currentMode === 'add') b.classList.add('locked');
+                    else b.classList.add('locked'); // [수정] 화살표 유지됨
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
@@ -210,8 +212,13 @@
                     btn.style.zIndex = "10"; 
                 } else { 
                     const found = evs.find(ev => idx >= ev.start && idx <= ev.end);
-                    if (found && editingIdx === -1) btn.style.background = found.color;
-                    else btn.style.background = "#1a1a1a";
+                    if (found && editingIdx === -1) {
+                        btn.style.background = found.color;
+                        btn.style.color = "#000";
+                    } else {
+                        btn.style.background = "#1a1a1a";
+                        btn.style.color = "#444";
+                    }
                     btn.style.outline = "none"; btn.style.zIndex = "1"; 
                 } 
             });
@@ -219,7 +226,7 @@
 
         function saveData() {
             const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("Please fill in details and time.");
+            if(!name || startSlot === null) return alert("Please enter details.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const { key, data } = getStore();
             const evs = data[currentDay]?.events || [];
@@ -229,8 +236,7 @@
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
-            document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
 
         function deleteData() { 
@@ -238,21 +244,16 @@
             data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
-            document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
         
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
-            // 다크그레이 대신 오렌지골드(#FF9500), 퍼플(#AF52DE) 등 선명한 색상 배치
             ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '28px'; d.style.borderRadius = '4px';
-                d.onclick = () => { 
-                    selectedColor = c; 
-                    initPalette(); 
-                    if(startSlot !== null) updateTimeUI(); 
-                }; 
+                d.style.cursor = 'pointer';
+                d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; 
                 p.appendChild(d);
             });
         }
