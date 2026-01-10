@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부평농협 둘레길 산악회 - 관리자 시스템</title>
+    <style>
+        /* [모듈 1: 기본 테마 - 다크 메탈] */
+        :root {
+            --bg-dark: #121212;
+            --metal-gray: #2c2c2c;
+            --metal-bright: #4a4a4a;
+            --text-silver: #d1d1d1;
+            --point-red: #ff4d4d;
+            --point-green: #4dff88;
+            --point-blue: #4da6ff;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-silver);
+            font-family: 'Malgun Gothic', dotum, sans-serif;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* [모듈 2: 헤더 및 통합 달력 영역 - 60%] */
+        .header {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--metal-bright);
+            letter-spacing: 1px;
+        }
+
+        .calendar-container {
+            flex: 6;
+            margin: 10px 0;
+            border: 1px solid var(--metal-bright);
+            background: #181818;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-placeholder {
+            font-size: 0.85rem;
+            color: #555;
+            text-align: center;
+        }
+
+        .calendar-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        /* [모듈 3: 메탈 버튼 시스템 - 입체 사각] */
+        .button-section {
+            flex: 4;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-metal {
+            /* 날카로운 사각 디자인 */
+            border-radius: 0; 
+            border: 1px solid #111;
+            background: linear-gradient(145deg, var(--metal-bright), #1a1a1a);
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 20px 0;
+            text-align: center;
+            cursor: pointer;
+            /* 메탈릭 입체감 조절 */
+            box-shadow: 4px 4px 10px #000, 
+                        -1px -1px 2px rgba(255,255,255,0.1);
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .btn-metal:active {
+            box-shadow: inset 4px 4px 8px #000;
+            transform: scale(0.98);
+        }
+
+        /* 5번 메뉴: 하단 단독 가로 꽉 찬 버튼 */
+        .btn-wide {
+            width: 100%;
+            background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
+            border: 1px solid #000;
+            color: #4da6ff; /* 강조를 위해 살짝 푸른빛 가미 */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">[부평농협 둘레길 산악회]</div>
+
+    <div class="calendar-container">
+        <div class="calendar-placeholder">
+            <h3>2026. 01. 10</h3>
+            <p>큼직한 통합 달력 로직이 들어갈 자리입니다</p>
+        </div>
+        <div class="calendar-legend">
+            <span style="color:var(--point-red)">●</span> 산악회 
+            <span style="color:var(--point-green); margin-left:10px;">●</span> 기타교실 
+            <span style="color:var(--point-blue); margin-left:10px;">●</span> 범방위
+        </div>
+    </div>
+
+    <div class="button-section">
+        <div class="grid-row">
+            <div class="btn-metal">회원 관리</div>
+            <div class="btn-metal">행사 / 일정</div>
+        </div>
+        <div class="grid-row">
+            <div class="btn-metal">회계 관리</div>
+            <div class="btn-metal">공지 문자</div>
+        </div>
+        
+        <div class="btn-metal btn-wide">
+            🖨️ 출력 및 보고서 센터
+        </div>
+    </div>
+
+</body>
+</html>
