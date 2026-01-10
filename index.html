@@ -59,8 +59,8 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns" style="display: flex; flex-direction: column; width: 85px; gap: 5px;">
-                    <button class="btn-auto" onclick="getRealWeather()" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
-                    <button id="loc-btn" onclick="document.getElementById('map-overlay').style.display='flex'" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지역선택</button>
+                    <button class="btn-auto" onclick="alert('날씨 서비스 준비중..')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
+                    <button id="loc-btn" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지역선택</button>
                 </div>
             </div>
 
@@ -107,15 +107,17 @@
 
                 if(otherEvIdx !== -1) { 
                     b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
-                    // [중요 교정] 수정 모드에서 "내 블록을 선택한 후"에만 다른 블록을 흐리게(locked) 처리함
                     if(currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked'); 
-                    // 그 외(수정 전, 삭제 모드)에는 원래 색상 그대로 pointer 유지
                 }
-                else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; b.style.outline = "2px solid gold"; }
+                else if(isMyEv) { 
+                    // [핵심 변경] 회색 대신 본래 색상을 유지하며 어둡게 처리
+                    b.style.background = selectedColor; 
+                    b.style.filter = "brightness(0.5)"; 
+                    b.style.color = "#fff"; 
+                    b.style.outline = "2px solid gold"; 
+                }
                 
-                // 빈 칸에 대한 비활성화(disabled) 조건 정밀화
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) {
-                    // 삭제 모드거나, 수정 모드인데 아직 아무것도 안 골랐을 때만 빈 칸을 무시함
                     if(currentMode === 'del' || (currentMode === 'edit' && editingIdx === -1)) b.classList.add('disabled');
                 }
 
