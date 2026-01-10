@@ -48,6 +48,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            overflow-y: auto; /* 내용이 길어질 경우 대비 */
         }
 
         .calendar-placeholder {
@@ -128,8 +129,8 @@
 
     <div class="button-section">
         <div class="grid-row">
-            <div class="btn-metal" onclick="app.showMember()">회원 관리</div>
-            <div class="btn-metal" onclick="app.showSchedule()">행사 / 일정</div>
+            <div class="btn-metal" onclick="window.app.showMember()">회원 관리</div>
+            <div class="btn-metal" onclick="window.app.showSchedule()">행사 / 일정</div>
         </div>
         <div class="grid-row">
             <div class="btn-metal" onclick="alert('회계 관리 모듈 준비 중')">회계 관리</div>
@@ -145,10 +146,10 @@
         import { initMember } from './modules/member.js';
         import { initSchedule } from './modules/schedule.js';
 
-        // 버튼 클릭 시 각 모듈의 기능을 실행하도록 전역 설정
+        // 전역 객체 등록 (버튼 인식용)
         window.app = {
-            showMember: () => initMember(),
-            showSchedule: () => initSchedule()
+            showMember: initMember,
+            showSchedule: initSchedule
         };
     </script>
 </body>
