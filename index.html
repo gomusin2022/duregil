@@ -13,56 +13,45 @@
         .header-container { text-align: center; padding: 10px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
         .header-title { font-size: 2rem; font-weight: 900; color: var(--nh-gold); margin: 0; }
         .year-text { color: var(--nh-gold); font-weight: bold; font-size: 1.2rem; margin-top: 5px; }
-
         .calendar-container { flex: 1; margin-top: 10px; display: flex; flex-direction: column; background: #051405; border: 1px solid var(--nh-green); overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #1a331a; }
         .weekday-header { padding: 5px 0; text-align: center; font-size: 0.9rem; font-weight: bold; background: #082008; }
         .cal-day { background: #0a1a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
         .day-num { font-size: 1.3rem; font-weight: 900; margin-bottom: 2px; }
-
         .weather-box { display: flex; flex-direction: column; align-items: flex-end; font-size: 0.7rem; line-height: 1.1; font-weight: bold; }
         .w-loc { background: var(--nh-green); color: #fff; padding: 0 3px; border-radius: 2px; margin-bottom: 1px; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .w-temp { color: var(--nh-gold); }
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 8px; background: #1a2a1a; margin-top: auto; border-radius: 2px; overflow: hidden; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
-        
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
-
         .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
-        
-        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
+        .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; filter: brightness(0.4); }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
         .del-confirm-active { background: #ff0000 !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
 <body>
-
     <div class="header-container">
         <div class="header-title">부평농협 둘레길 산악회</div>
         <div id="year-title" class="year-text"></div>
     </div>
-
     <div class="calendar-container">
         <div id="main-calendar" class="cal-grid"></div>
     </div>
-
     <div id="input-modal" class="modal">
         <div class="modal-content">
             <h3 id="modal-date-title" style="text-align:center; color:var(--nh-gold); margin:0 0 15px 0;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 10px; background: #000; padding: 3px;"></div>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 15px; height: 100px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 80px; gap: 2px; background: #000; padding: 2px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#051405; border:1px solid var(--nh-gold); color:#fff; padding:8px; border-radius:5px; resize:none;" placeholder="일정 입력"></textarea>
                 <div class="weather-btns" style="display: flex; flex-direction: column; width: 85px; gap: 5px;">
-                    <button class="btn-auto" onclick="alert('날씨 기능 점검중')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
+                    <button class="btn-auto" onclick="alert('기능 점검')" style="flex: 2; background: var(--nh-gold); font-weight: bold; border-radius: 5px; border: 1px solid #fff; cursor: pointer;">자동 날씨</button>
                     <button id="loc-btn" style="flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">지역선택</button>
                 </div>
             </div>
-
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
                 <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">완료</button>
                 <button id="save-btn" onclick="saveData()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px; font-weight:bold;">저장</button>
@@ -81,7 +70,7 @@
         function handleDelBtnClick() {
             if (currentMode !== 'del') changeRadioMode('del');
             else if (editingIdx !== -1) deleteData();
-            else alert("삭제할 일정을 먼저 선택하세요.");
+            else alert("삭제 대상을 선택하세요.");
         }
 
         function changeRadioMode(mode) {
@@ -94,33 +83,27 @@
             if(mode === 'add') resetForm(); else initTime(); 
         }
 
-        // [문제의 그 부분! 완벽 교정]
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
-            
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const foundIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
-                const isEditingThis = foundIdx !== -1 && foundIdx === editingIdx;
-
+                const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
                 if(foundIdx !== -1) {
                     const target = evs[foundIdx];
-                    // [교정] 회색(#333) 조건을 완전히 제거했습니다.
-                    // 고치는 중인 놈은 무조건 selectedColor, 아니면 저장된 색상 적용.
                     b.style.background = isEditingThis ? selectedColor : target.color;
                     b.style.color = "#000";
                     if(isEditingThis) {
-                        b.style.outline = "2px solid gold";
-                        b.style.boxShadow = "inset 0 0 5px white";
+                        b.style.outline = "3px solid gold";
                         b.style.zIndex = "10";
+                    } else if (currentMode === 'edit' && editingIdx !== -1) {
+                        b.classList.add('locked');
                     }
-                    if(currentMode === 'add') b.classList.add('locked');
-                } else {
-                    if(currentMode === 'del' || (currentMode === 'edit' && editingIdx === -1)) b.classList.add('disabled');
+                } else if(currentMode !== 'add' && editingIdx === -1) {
+                    b.classList.add('disabled');
                 }
-
                 b.onclick = () => {
                     if(foundIdx !== -1) {
                         if(currentMode !== 'add') {
@@ -150,10 +133,8 @@
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             btns.forEach((btn, idx) => {
                 if(startSlot !== null && idx >= s && idx <= e) {
-                    btn.style.background = selectedColor; // 여기도 선택된 색상으로!
+                    btn.style.background = selectedColor;
                     btn.style.outline = "2px solid gold";
-                } else {
-                    // 빈 칸이나 다른 블록은 initTime에서 잡은 로직 유지
                 }
             });
         }
@@ -170,8 +151,8 @@
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
             }
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = { name, start: s, end: e, color: selectedColor };
-            else data[currentDay].events.push({ name, start: s, end: e, color: selectedColor });
+            const ev = { name, start: s, end: e, color: selectedColor };
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar(); changeRadioMode('add');
         };
@@ -193,6 +174,7 @@
             ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
             for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=lastDate; d++) {
+                const dayIdx = new Date(year, month, d).getDay();
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
