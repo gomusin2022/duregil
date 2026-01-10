@@ -35,8 +35,8 @@
         
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
 
-        /* [추가] 라디오 버튼 활성화 효과 (UI 파괴 없이 상태만 표시) */
-        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1.5px solid #fff !important; font-weight: 900 !important; }
+        /* [추가] 라디오 버튼 활성화 효과 (유아이 파괴 없이 상태만 표시) */
+        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
@@ -88,25 +88,29 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v8';
+        const storageKey = 'nh_weather_final_v8_perfect';
         const apiKey = 'b1eb3292419409f920f69d35c59f0f90';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
-        let currentMode = 'add'; // 추가/수정/삭제 라디오 상태
+        let currentMode = 'add'; // 'add', 'edit', 'del'
 
-        // [라디오 모드 변경 핵심 로직]
+        // [핵심] 라디오 버튼 모드 전환 (눌림 효과 포함)
         function changeRadioMode(mode) {
             currentMode = mode;
-            // 버튼 디자인 보존하며 액티브 상태만 표시
+            // 버튼들 중 active 클래스 관리
             document.getElementById('mode-add').classList.toggle('radio-active', mode === 'add');
             document.getElementById('mode-edit').classList.toggle('radio-active', mode === 'edit');
             document.getElementById('mode-del').classList.toggle('radio-active', mode === 'del');
 
-            // 추가 모드로 전환 시 입력 필드 등 리셋
             if(mode === 'add') {
                 editingIdx = -1; startSlot = null; endSlot = null;
                 document.getElementById('ev-name').value = '';
+                document.getElementById('save-btn').innerText = "저장";
+            } else if (mode === 'edit') {
+                document.getElementById('save-btn').innerText = "수정완료";
+            } else {
+                document.getElementById('save-btn').innerText = "삭제수행";
             }
-            initTime(); // 모드 전환 시 시간 선택 잠금 상태 반영
+            initTime(); // 화면 갱신
         }
 
         function initTime() {
@@ -121,22 +125,25 @@
                 const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
                 const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
 
-                if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
-                else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; b.style.outline = "2px solid gold"; }
+                if(otherEvIdx !== -1) { 
+                    b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; 
+                } else if(isMyEv) { 
+                    b.style.background = "#333"; b.style.color = "#fff"; b.style.outline = "2px solid gold"; 
+                }
 
-                // [수정] 라디오 모드 규칙: 수정/삭제 시 블럭 선택 전엔 빈칸 잠금
+                // [수정] 라디오 모드 제어: 수정/삭제 시 블록이 선택되지 않은 상태에선 빈칸 클릭 불가
                 if(currentMode !== 'add' && otherEvIdx === -1 && !isMyEv) b.classList.add('disabled');
 
                 b.onclick = () => {
-                    // 수정/삭제 모드: 등록된 일정 블럭 먼저 클릭
-                    if(currentMode !== 'add' && otherEvIdx !== -1) { 
-                        editingIdx = otherEvIdx; const e = evs[otherEvIdx];
+                    // 수정/삭제 모드에서 일정 선택하기
+                    if(currentMode !== 'add' && otherEvIdx !== -1) {
+                        editingIdx = otherEvIdx; 
+                        const e = evs[otherEvIdx];
                         startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                         document.getElementById('ev-name').value = e.name;
                         initPalette(); initTime(); return;
                     }
-                    
-                    // 추가 모드 또는 수정 모드에서 시간 변경 시
+                    // 수정 모드 중 내 일정 시간 바꾸거나, 추가 모드에서 시간 정하기
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
                         if(otherEvIdx !== -1) return;
                         if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
@@ -162,13 +169,12 @@
             
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar();
-            const sBtn = document.getElementById('save-btn');
-            sBtn.innerText = "저장완료"; sBtn.style.background = "var(--nh-green)";
-            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; changeRadioMode('add'); }, 700);
+            alert("처리되었습니다.");
+            changeRadioMode('add');
         };
 
-        window.deleteData = function() { 
-            if(editingIdx === -1) return alert("대상을 먼저 선택하세요.");
+        window.deleteData = function() {
+            if(editingIdx === -1) return alert("삭제할 일정을 먼저 선택하세요.");
             if(!confirm("삭제하시겠습니까?")) return;
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             data[currentDay].events.splice(editingIdx, 1);
@@ -177,13 +183,12 @@
         };
 
         window.openModal = function(d) {
-            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정 관리";
+            currentDay = d; document.getElementById('modal-date-title').innerText = d + "일 일정";
             document.getElementById('input-modal').style.display = 'flex';
-            changeRadioMode('add'); // 항상 추가 모드로 시작
+            changeRadioMode('add');
         };
 
-        // --- 디자인 무결성을 위해 아래 기능은 국장님 소스 그대로 유지 ---
-        function renderCalendar() {
+        window.renderCalendar = function() {
             const container = document.getElementById('main-calendar');
             const now = new Date(); const year = 2026, month = 0;
             document.getElementById('year-title').innerText = `${year}년 ${month+1}월`;
@@ -210,17 +215,15 @@
             }
             container.innerHTML = html;
         }
+
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
         function updateTimeUI() {
             const btns = document.querySelectorAll('#time-picker div');
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            btns.forEach((btn, i) => {
-                if(startSlot !== null && i >= s && i <= e) {
-                    btn.style.outline = "2px solid gold";
-                } else {
-                    btn.style.outline = "none";
-                }
+            btns.forEach((btn, idx) => {
+                if(startSlot !== null && idx >= s && idx <= e) btn.style.outline = "2px solid gold";
+                else btn.style.outline = "none";
             });
         }
         function initPalette() {
@@ -231,8 +234,8 @@
                 d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); initTime(); }; p.appendChild(d);
             });
         }
-        async function getRealWeather() { /* 기존 로직 */ }
-        function confirmLocation() { /* 기존 로직 */ }
+        window.getRealWeather = function() { /* 국장님 기존 로직 */ };
+        window.confirmLocation = function() { /* 국장님 기존 로직 */ };
         window.onload = renderCalendar;
     </script>
 </body>
