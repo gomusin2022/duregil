@@ -244,13 +244,13 @@
         
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
-            ['#0070FF', '#FF0000', '#22C55E', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#666666', '#AAAAAA'].forEach(c => {
+            // 다크그레이 대신 오렌지골드(#FF9500), 퍼플(#AF52DE) 등 선명한 색상 배치
+            ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
                 const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
                 d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333'; d.style.height = '28px'; d.style.borderRadius = '4px';
                 d.onclick = () => { 
                     selectedColor = c; 
                     initPalette(); 
-                    // [해결!] 색상을 바꿀 때 현재 찍혀있는 시간이 있다면 즉시 다시 그려줍니다.
                     if(startSlot !== null) updateTimeUI(); 
                 }; 
                 p.appendChild(d);
