@@ -62,11 +62,11 @@
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                <button onclick="resetForm()" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
+                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
                 <button id="save-btn" onclick="saveData()" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
+                <button onclick="resetForm()" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
                 <button onclick="alert('일정을 클릭하면 수정 모드가 됩니다. 내용을 고친 후 저장하세요.')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정안내</button>
                 <button onclick="deleteData()" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
-                <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
             </div>
         </div>
     </div>
@@ -151,7 +151,6 @@
             container.innerHTML = html;
         }
 
-        // [핵심] 저장 및 수정완료 통합 로직
         window.saveData = function() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
@@ -160,10 +159,8 @@
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const ev = { name, start: s, end: e, color: selectedColor };
-            
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
             else (data[currentDay].events = data[currentDay].events || []).push(ev);
-            
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar();
             const sBtn = document.getElementById('save-btn');
@@ -198,34 +195,24 @@
             });
         }
 
-        // [핵심] 수정 시 본인 일정 시간대 해제 로직
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
-                
-                // 본인이 아닌 다른 일정 확인
                 const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
-                // 현재 수정 중인 본인 일정 확인
                 const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
-
-                if(otherEvIdx !== -1) {
-                    b.style.background = evs[otherEvIdx].color; b.style.color = "#000";
-                } else if(isMyEv) {
-                    b.style.background = "#333"; b.style.color = "#fff"; // 본인 일정은 연하게 (수정 가능 표시)
-                }
-
+                if(otherEvIdx !== -1) { b.style.background = evs[otherEvIdx].color; b.style.color = "#000"; }
+                else if(isMyEv) { b.style.background = "#333"; b.style.color = "#fff"; }
                 b.onclick = () => {
-                    if(otherEvIdx !== -1) { // 다른 일정 클릭 시 해당 일정 수정모드 진입
+                    if(otherEvIdx !== -1) { 
                         editingIdx = otherEvIdx; const e = evs[otherEvIdx];
                         startSlot = e.start; endSlot = e.end; selectedColor = e.color;
                         document.getElementById('ev-name').value = e.name;
                         document.getElementById('save-btn').innerText = "수정완료";
                         initPalette(); initTime(); return;
                     }
-                    // 시간 선택 로직
                     if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
                     document.querySelectorAll('#time-picker div').forEach((btn, idx) => {
                         const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
