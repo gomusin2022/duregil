@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부평농협 둘레길 산악회 - UI 최적화</title>
+    <title>부평농협 둘레길 산악회 - 정밀 로직 수정</title>
     <style>
         :root {
             --bg-dark: #121212;
@@ -25,71 +25,48 @@
         #input-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #252525; width: 95%; max-width: 500px; padding: 20px; border-radius: 15px; border: 2px solid var(--metal-bright); box-shadow: 0 0 50px #000; }
         
-        /* 시간 선택 버튼 */
         .range-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 5px; }
         .time-btn { background: #333; border: none; color: #777; padding: 12px 0; text-align: center; font-size: 0.7rem; cursor: pointer; }
-        .time-btn.selected { outline: 2px solid white; z-index: 10; color: black !important; font-weight: bold; }
+        .time-btn.selected { outline: 2px solid white; z-index: 10; color: black !important; font-weight: bold; box-shadow: 0 0 10px white; }
         .time-btn.disabled { opacity: 0.2; cursor: not-allowed; }
 
-        /* [핵심] 9등분 컬러 박스와 입력창 가로 배치 */
         .input-row { display: flex; gap: 10px; margin-bottom: 20px; height: 80px; }
-        
-        .color-grid-9 { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            grid-template-rows: repeat(3, 1fr); 
-            width: 80px; /* 입력창 높이와 동일하게 정사각형 */
-            height: 80px;
-            gap: 2px;
-            background: #444;
-            padding: 2px;
-            border-radius: 5px;
-        }
+        .color-grid-9 { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 80px; height: 80px; gap: 2px; background: #444; padding: 2px; border-radius: 5px; }
         .c-dot { width: 100%; height: 100%; cursor: pointer; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
         .c-dot.active { border: 2px solid white; box-sizing: border-box; }
 
-        .ev-input { 
-            flex: 1; 
-            background: #111; 
-            border: 1px solid #555; 
-            color: white; 
-            border-radius: 5px; 
-            padding: 10px; 
-            font-size: 1.1rem; 
-            box-sizing: border-box;
-            height: 80px;
-        }
+        .ev-input { flex: 1; background: #111; border: 1px solid #555; color: white; border-radius: 5px; padding: 10px; font-size: 1.1rem; box-sizing: border-box; height: 80px; resize: none; }
 
         .action-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .btn { padding: 15px 0; font-weight: bold; text-align: center; cursor: pointer; border-radius: 5px; color: white; font-size: 0.8rem; border: none; }
         .btn-add { background: #444; }
         .btn-save { background: #4da6ff; }
-        .btn-edit { background: #666; }
+        .btn-edit { background: #f39c12; color: black; } /* 수정버튼 색상강조 */
         .btn-delete { background: #ff4d4d; }
         .btn-complete { background: #4dff88; color: black; }
     </style>
 </head>
 <body>
 
-    <div class="header">[부평농협 산악회 - 실무 최적화]</div>
+    <div class="header">[부평농협 산악회 - 스마트 관리자]</div>
     <div class="calendar-container" id="main-calendar"></div>
 
     <div id="input-modal">
         <div class="modal-content">
             <h3 id="modal-date-title" style="margin-top:0; text-align:center; color:#f39c12;">00일 일정</h3>
+            <div id="mode-text" style="text-align:center; font-size:0.8rem; color:#888; margin-bottom:10px;">추가 모드</div>
             
             <div class="range-picker" id="time-range-box"></div>
 
             <div class="input-row">
-                <div class="color-grid-9" id="color-palette">
-                    </div>
-                <textarea id="ev-name" class="ev-input" placeholder="행사 내용 입력"></textarea>
+                <div class="color-grid-9" id="color-palette"></div>
+                <textarea id="ev-name" class="ev-input" placeholder="산행 내용 입력"></textarea>
             </div>
 
             <div class="action-btns">
                 <div class="btn btn-add" onclick="resetForm()">추가</div>
                 <div class="btn btn-save" onclick="saveData(false)">저장</div>
-                <div class="btn btn-edit" onclick="saveData(true)">수정</div>
+                <div class="btn btn-edit" onclick="saveData(true)">수정완료</div>
                 <div class="btn btn-delete" onclick="deleteSpecific()">삭제</div>
                 <div class="btn btn-complete" onclick="closeModal()">완료</div>
             </div>
@@ -99,12 +76,8 @@
     <script>
         let currentDay = 0, startSlot = null, endSlot = null, editingIndex = -1;
         let selectedColor = '#ff4d4d';
-        const storageKey = 'dure_v9_final';
-        const colors9 = [
-            '#ff4d4d', '#4dff88', '#4da6ff', 
-            '#f39c12', '#9b59b6', '#1abc9c', 
-            '#e74c3c', '#f1c40f', '#34495e'
-        ];
+        const storageKey = 'dure_v10_final';
+        const colors9 = ['#ff4d4d', '#4dff88', '#4da6ff', '#f39c12', '#9b59b6', '#1abc9c', '#e74c3c', '#f1c40f', '#34495e'];
 
         function initPalette() {
             const pal = document.getElementById('color-palette');
@@ -127,7 +100,7 @@
             box.innerHTML = '';
             const events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const dayEvs = events[currentDay] || [];
-            const slotData = Array(12).fill({ color: '#333', idx: -1 });
+            const slotData = Array(12).fill(null).map(() => ({ color: '#333', idx: -1 }));
 
             dayEvs.forEach((ev, i) => {
                 for(let s=ev.start; s<=ev.end; s++) slotData[s] = { color: ev.color, idx: i };
@@ -140,20 +113,25 @@
                 btn.style.backgroundColor = slotData[i].color;
                 if(slotData[i].color !== '#333') btn.style.color = 'black';
                 
+                // [수정 로직] 수정 중인 인덱스가 아닐 경우에만 비활성화 표시
                 if(editingIndex !== -1 && slotData[i].idx !== -1 && slotData[i].idx !== editingIndex) {
                     btn.classList.add('disabled');
                 }
+
                 btn.onclick = () => {
                     if(btn.classList.contains('disabled')) return;
                     if(slotData[i].idx !== -1) {
+                        // 기존 일정 클릭 시 수정모드 진입
                         editingIndex = slotData[i].idx;
                         const ev = dayEvs[editingIndex];
                         startSlot = ev.start; endSlot = ev.end;
                         document.getElementById('ev-name').value = ev.name;
                         selectedColor = ev.color;
+                        document.getElementById('mode-text').innerText = "수정/삭제 모드";
                         initPalette();
                     } else {
-                        editingIndex = -1;
+                        // 빈 공간 클릭 시 추가모드 전환 또는 범위 설정
+                        if(editingIndex !== -1) resetForm(); // 수정 중에 빈칸 누르면 추가모드로 리셋
                         if (startSlot === null || (startSlot !== null && endSlot !== null)) {
                             startSlot = i; endSlot = null;
                         } else {
@@ -181,23 +159,29 @@
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             if(!events[currentDay]) events[currentDay] = [];
 
+            // [핵심 수정] 본인(editingIndex)은 중복 검사에서 제외!!
             const overlap = events[currentDay].some((ev, i) => {
-                if(isUpdate && i === editingIndex) return false;
+                if(isUpdate && i === editingIndex) return false; // 내 일정은 내가 겹쳐도 됨
                 return (startSlot <= ev.end && end >= ev.start);
             });
-            if(overlap) return alert("시간이 겹칩니다.");
+
+            if(overlap) return alert("다른 일정과 시간이 겹칩니다.");
 
             const data = { name, start: startSlot, end, color: selectedColor };
-            if(isUpdate && editingIndex !== -1) events[currentDay][editingIndex] = data;
-            else events[currentDay].push(data);
+            if(isUpdate && editingIndex !== -1) {
+                events[currentDay][editingIndex] = data;
+            } else {
+                events[currentDay].push(data);
+            }
 
             localStorage.setItem(storageKey, JSON.stringify(events));
             renderCalendar(); resetForm();
+            alert(isUpdate ? "수정되었습니다." : "저장되었습니다.");
         };
 
         window.deleteSpecific = function() {
             if(editingIndex === -1) return alert("삭제할 일정을 선택하세요.");
-            if(!confirm("삭제하시겠습니까?")) return;
+            if(!confirm("정말 삭제하시겠습니까?")) return;
             let events = JSON.parse(localStorage.getItem(storageKey) || '{}');
             events[currentDay].splice(editingIndex, 1);
             localStorage.setItem(storageKey, JSON.stringify(events));
@@ -225,7 +209,7 @@
 
         window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = `${d}일 일정 관리`; document.getElementById('input-modal').style.display='flex'; resetForm(); };
         window.closeModal = function() { document.getElementById('input-modal').style.display='none'; };
-        window.resetForm = function() { startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; initPalette(); initTimePicker(); };
+        window.resetForm = function() { startSlot=null; endSlot=null; editingIndex=-1; document.getElementById('ev-name').value=''; document.getElementById('mode-text').innerText = "추가 모드"; initPalette(); initTimePicker(); };
         window.onload = renderCalendar;
     </script>
 </body>
