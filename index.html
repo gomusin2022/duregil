@@ -156,16 +156,18 @@
                     const target = evs[foundIdx];
                     b.style.background = isEditingThis ? selectedColor : target.color;
                     b.style.color = "#000";
+                    // [해결!] 내가 고치고 있는 블록은 금지표시(locked)를 하지 않음
                     if(isEditingThis) { b.style.outline = "3px solid gold"; b.style.zIndex = "10"; }
                     else if (currentMode === 'edit' && editingIdx !== -1) b.classList.add('locked');
+                    else if (currentMode === 'add') b.classList.add('locked'); 
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 
                 b.onclick = () => {
                     if(foundIdx !== -1) {
                         if(currentMode !== 'add') {
                             editingIdx = foundIdx; const e = evs[foundIdx];
-                            // [수정] 수정 모드 진입 시 시간을 새로 찍을 수 있게 초기화
-                            startSlot = null; endSlot = null; 
+                            // [수정] 수정 클릭 시 기존 시간 일단 보존하여 오류 방지
+                            startSlot = e.start; endSlot = e.end; 
                             selectedColor = e.color;
                             document.getElementById('ev-name').value = e.name;
                             if(currentMode === 'del') {
@@ -177,7 +179,9 @@
                         return;
                     }
                     if(currentMode === 'add' || (currentMode === 'edit' && editingIdx !== -1)) {
-                        if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
+                        if(foundIdx !== -1 && !isEditingThis) return;
+                        if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; }
+                        else { endSlot = i; }
                         updateTimeUI();
                     }
                 };
@@ -193,9 +197,7 @@
                 if(startSlot !== null && idx >= s && idx <= e) {
                     btn.style.background = selectedColor;
                     btn.style.outline = "2px solid gold";
-                } else {
-                    btn.style.outline = "none";
-                }
+                } else { btn.style.outline = "none"; }
             });
         }
 
@@ -208,7 +210,7 @@
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
             
-            // [중요 교정] 중복 체크 시 자기 자신(editingIdx)은 검사에서 배제하여 시간 단축/수정을 허용함
+            // [중요] 중복 체크 시 자기 자신(editingIdx)은 검사에서 배제
             for (let i = s; i <= e; i++) {
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
             }
