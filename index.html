@@ -23,7 +23,6 @@
         .weather-box { display: flex; flex-direction: column; align-items: flex-end; font-size: 0.7rem; line-height: 1.1; font-weight: bold; }
         .w-loc { background: var(--nh-green); color: #fff; padding: 0 3px; border-radius: 2px; margin-bottom: 1px; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .w-temp { color: var(--nh-gold); }
-        
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; height: 8px; background: #1a2a1a; margin-top: auto; border-radius: 2px; overflow: hidden; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
@@ -33,6 +32,8 @@
         .btn-loc { flex: 1; background: #fff; color: #000; font-size: 0.7rem; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; }
 
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        
+        .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; }
     </style>
 </head>
 <body>
@@ -62,8 +63,8 @@
 
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
                 <button onclick="resetForm()" style="background:#333; color:#fff; border:none; border-radius:5px;">추가</button>
-                <button id="save-btn" onclick="saveData(false)" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
-                <button onclick="saveData(true)" style="background:#333; color:#fff; border:none; border-radius:5px;">수정</button>
+                <button id="save-btn" onclick="saveData()" style="background:#333; color:#fff; border:none; border-radius:5px;">저장</button>
+                <button onclick="alert('일정을 클릭하면 수정 모드가 됩니다. 내용을 고친 후 저장하세요.')" style="background:#333; color:#fff; border:none; border-radius:5px;">수정안내</button>
                 <button onclick="deleteData()" style="background:#333; color:#fff; border:none; border-radius:5px;">삭제</button>
                 <button onclick="closeModal()" style="color:var(--nh-gold); border:1px solid var(--nh-gold); background:none; border-radius:5px;">완료</button>
             </div>
@@ -72,9 +73,9 @@
 
     <div id="map-overlay">
         <div style="color:var(--nh-gold); font-size:1.2rem; font-weight:bold; margin-bottom:20px; text-align:center;">날씨 위치 설정</div>
-        <input type="text" id="loc-search" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="예: 인천, 설악산, 서울, Incheon">
+        <input type="text" id="loc-search" style="width:100%; padding:15px; border-radius:8px; border:none; margin-bottom:15px; font-size:1.1rem;" placeholder="장소 입력">
         <div style="flex:1; background:#111; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#555; text-align:center; padding:20px;">
-            한글 지역명을 입력하고 [위치확정]을 누르세요.<br>자동으로 날씨 데이터와 연결됩니다.
+            한글 지역명을 입력하고 [위치확정]을 누르세요.
         </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button onclick="confirmLocation()" style="flex:1; padding:15px; background:var(--nh-gold); font-weight:bold; border:none; border-radius:8px;">위치확정 및 복귀</button>
@@ -83,52 +84,28 @@
     </div>
 
     <script>
-        const storageKey = 'nh_weather_final_v7';
-        const apiKey = 'b1eb3292419409f920f69d35c59f0f90'; // 날씨 서버 통신용 키
+        const storageKey = 'nh_weather_final_v8';
+        const apiKey = 'b1eb3292419409f920f69d35c59f0f90';
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#FF0000', editingIdx = -1;
 
-        // [실시간 날씨 연동 엔진 V2]
         async function getRealWeather() {
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const targetLoc = data[currentDay]?.weather?.location;
-
-            if(!targetLoc) return alert("지역선택 버튼을 먼저 눌러 지역을 지정해주세요!");
-
+            if(!targetLoc) return alert("지역선택을 먼저 해주세요!");
             const btn = document.getElementById('fetch-btn');
             btn.innerText = "조회중..";
-
-            // 한글 -> 영문 변환 매퍼 (기상청 연동 효율을 위해)
-            const cityMap = { "인천": "Incheon", "서울": "Seoul", "부평": "Incheon", "부산": "Busan", "설악산": "Sokcho", "마니산": "Incheon", "계양산": "Incheon" };
+            const cityMap = { "인천": "Incheon", "서울": "Seoul", "부평": "Incheon" };
             const query = cityMap[targetLoc] || targetLoc;
-
             try {
-                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apiKey}&units=metric&lang=kr`);
-                const w = await response.json();
-                
-                if(w.cod !== 200) throw new Error("위치를 찾을 수 없습니다.");
-
-                const main = w.weather[0].main;
-                let sky = "맑음"; let icon = "☀️";
-                if(main.includes("Rain")) { sky = "비"; icon = "☔"; }
-                else if(main.includes("Cloud")) { sky = "흐림"; icon = "☁️"; }
-
-                const newWeather = {
-                    location: targetLoc,
-                    low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max),
-                    pop: w.main.humidity + "%", state: icon + " " + sky
-                };
-
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apiKey}&units=metric`);
+                const w = await res.json();
+                if(w.cod !== 200) throw new Error();
+                const newWeather = { location: targetLoc, low: Math.floor(w.main.temp_min), high: Math.ceil(w.main.temp_max), pop: w.main.humidity + "%", state: "☀️" };
                 if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
                 data[currentDay].weather = newWeather;
                 localStorage.setItem(storageKey, JSON.stringify(data));
-                renderCalendar();
-                btn.innerText = "완료!";
-                setTimeout(()=> btn.innerHTML = "자동<br>날씨", 1000);
-
-            } catch(e) {
-                alert("날씨 정보를 가져오지 못했습니다. 영문 도시명(예: Seoul)을 시도해보세요.");
-                btn.innerHTML = "자동<br>날씨";
-            }
+                renderCalendar(); btn.innerText = "완료"; setTimeout(()=> btn.innerHTML = "자동<br>날씨", 1000);
+            } catch(e) { alert("조회 실패. 영문 지명을 시도해보세요."); btn.innerHTML = "자동<br>날씨"; }
         }
 
         function confirmLocation() {
@@ -143,7 +120,6 @@
             renderCalendar();
         }
 
-        // [기초 기능들 복구]
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
             const now = new Date(); const year = 2026, month = 0;
@@ -151,26 +127,22 @@
             const firstIdx = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month+1, 0).getDate();
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-
             let html = '';
             ['일','월','화','수','목','금','토'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'var(--sun-red)':i===6?'var(--sat-blue)':'#fff'}">${d}</div>`);
             for(let i=0; i<firstIdx; i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=lastDate; d++) {
                 const dayIdx = new Date(year, month, d).getDay();
                 const dData = data[d] || { events: [], weather: {} };
-                const we = dData.weather || {};
                 let barHtml = Array(12).fill(0).map((_,i)=>{
                     const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end);
                     return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`;
                 }).join('');
-
                 html += `<div class="cal-day" onclick="openModal(${d})">
                     <div style="display:flex; justify-content:space-between; pointer-events:none;">
                         <div class="day-num" style="color:${dayIdx===0?'var(--sun-red)':dayIdx===6?'var(--sat-blue)':'#fff'}">${d}</div>
                         <div class="weather-box">
-                            <div class="w-loc">${we.location || ''}</div>
-                            <div class="w-temp">${we.low !== undefined ? we.low+'/'+we.high : ''}</div>
-                            <div>${we.state || ''} <span style="color:var(--rain-blue); font-size:0.6rem;">${we.pop || ''}</span></div>
+                            <div class="w-loc">${dData.weather?.location || ''}</div>
+                            <div class="w-temp">${dData.weather?.low !== undefined ? dData.weather.low+'/'+dData.weather.high : ''}</div>
                         </div>
                     </div>
                     <div class="time-bar">${barHtml}</div>
@@ -179,7 +151,8 @@
             container.innerHTML = html;
         }
 
-        window.saveData = function(isUpdate) {
+        // [핵심] 저장 및 수정완료 통합 로직
+        window.saveData = function() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 입력하세요.");
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -187,11 +160,16 @@
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
             const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const ev = { name, start: s, end: e, color: selectedColor };
-            if(isUpdate && editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else (data[currentDay].events = data[currentDay].events || []).push(ev);
+            
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; 
+            else (data[currentDay].events = data[currentDay].events || []).push(ev);
+            
             localStorage.setItem(storageKey, JSON.stringify(data));
             renderCalendar();
-            const sBtn = document.getElementById('save-btn'); sBtn.innerText = "완료"; sBtn.style.background = "var(--nh-green)";
-            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; if(!isUpdate) resetForm(); }, 700);
+            const sBtn = document.getElementById('save-btn');
+            sBtn.innerText = editingIdx !== -1 ? "수정완료" : "저장됨";
+            sBtn.style.background = "var(--nh-green)";
+            setTimeout(() => { sBtn.innerText = "저장"; sBtn.style.background = "#333"; resetForm(); }, 700);
         };
 
         window.openModal = function(d) {
@@ -201,28 +179,54 @@
             document.getElementById('input-modal').style.display = 'flex';
             resetForm();
         };
+
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        window.resetForm = function() { startSlot=null; endSlot=null; editingIdx=-1; document.getElementById('ev-name').value=''; initPalette(); initTime(); };
+
+        window.resetForm = function() { 
+            startSlot=null; endSlot=null; editingIdx=-1; 
+            document.getElementById('ev-name').value=''; 
+            document.getElementById('save-btn').innerText = "저장";
+            initPalette(); initTime(); 
+        };
+
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#FF0000', '#00FF00', '#0070FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FF8000', '#A0A0A0', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); d.style.background = c; d.style.height = '25px'; d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
-                d.onclick = () => { selectedColor = c; initPalette(); }; p.appendChild(d);
+                const d = document.createElement('div'); d.className = 'c-dot'; d.style.background = c;
+                d.style.border = selectedColor===c?'2px solid #fff':'1px solid #333';
+                d.style.height = '25px'; d.onclick = () => { selectedColor = c; initPalette(); }; p.appendChild(d);
             });
         }
+
+        // [핵심] 수정 시 본인 일정 시간대 해제 로직
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
             for(let i=0; i<12; i++) {
-                const b = document.createElement('div'); b.style.cssText = "background:#111; color:#555; padding:8px 0; text-align:center; font-size:0.75rem; cursor:pointer;";
-                b.innerText = (i+6).toString().padStart(2,'0');
-                const ev = evs.find(e => i>=e.start && i<=e.end);
-                if(ev) { b.style.background = ev.color; b.style.color = "#000"; }
+                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
+                
+                // 본인이 아닌 다른 일정 확인
+                const otherEvIdx = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx !== editingIdx);
+                // 현재 수정 중인 본인 일정 확인
+                const isMyEv = evs.findIndex((e, idx) => i>=e.start && i<=e.end && idx === editingIdx) !== -1;
+
+                if(otherEvIdx !== -1) {
+                    b.style.background = evs[otherEvIdx].color; b.style.color = "#000";
+                } else if(isMyEv) {
+                    b.style.background = "#333"; b.style.color = "#fff"; // 본인 일정은 연하게 (수정 가능 표시)
+                }
+
                 b.onclick = () => {
-                    const fIdx = evs.findIndex(e => i>=e.start && i<=e.end);
-                    if(fIdx !== -1) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; initPalette(); }
-                    else { if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; } }
+                    if(otherEvIdx !== -1) { // 다른 일정 클릭 시 해당 일정 수정모드 진입
+                        editingIdx = otherEvIdx; const e = evs[otherEvIdx];
+                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
+                        document.getElementById('ev-name').value = e.name;
+                        document.getElementById('save-btn').innerText = "수정완료";
+                        initPalette(); initTime(); return;
+                    }
+                    // 시간 선택 로직
+                    if(startSlot === null) startSlot = i; else if(endSlot === null) endSlot = i; else { startSlot = i; endSlot = null; }
                     document.querySelectorAll('#time-picker div').forEach((btn, idx) => {
                         const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
                         const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
@@ -232,7 +236,15 @@
                 t.appendChild(b);
             }
         }
-        window.deleteData = function() { if(editingIdx === -1) return; let data = JSON.parse(localStorage.getItem(storageKey) || '{}'); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); resetForm(); };
+
+        window.deleteData = function() { 
+            if(editingIdx === -1) return;
+            let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            data[currentDay].events.splice(editingIdx, 1);
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            renderCalendar(); resetForm();
+        };
+
         window.onload = renderCalendar;
     </script>
 </body>
