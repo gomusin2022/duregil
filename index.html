@@ -164,7 +164,7 @@
                     if(foundIdx !== -1) {
                         if(currentMode !== 'add') {
                             editingIdx = foundIdx; const e = evs[foundIdx];
-                            // [중요] 수정할 블록을 누르면 시간을 새로 찍을 수 있게 null로 초기화합니다.
+                            // [수정] 수정 모드 진입 시 시간을 새로 찍을 수 있게 초기화
                             startSlot = null; endSlot = null; 
                             selectedColor = e.color;
                             document.getElementById('ev-name').value = e.name;
@@ -208,7 +208,7 @@
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             const evs = data[currentDay]?.events || [];
             
-            // [중요] 중복 체크 시 자기 자신(editingIdx)은 검사에서 빼서 시간 변경을 허용합니다.
+            // [중요 교정] 중복 체크 시 자기 자신(editingIdx)은 검사에서 배제하여 시간 단축/수정을 허용함
             for (let i = s; i <= e; i++) {
                 if (evs.findIndex((ev, idx) => i >= ev.start && i <= ev.end && idx !== editingIdx) !== -1) return alert("중복 일정 존재");
             }
