@@ -9,6 +9,8 @@
         :root {
             --bg-dark: #0a1a0a; --nh-green: #006837; --nh-gold: #d4af37; --text-silver: #f0f0f0;
             --sat-blue: #4da6ff; --sun-red: #ff4d4d; --rain-blue: #00d4ff;
+            /* 메탈 다크 그레이 정의 */
+            --metal-gradient: linear-gradient(145deg, #555555, #333333);
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .header-container { text-align: center; padding: 10px 0; background: linear-gradient(145deg, #0d2a0d, #051405); border: 2px solid var(--nh-gold); border-radius: 8px; flex-shrink: 0; }
@@ -27,15 +29,28 @@
         .modal-content { background: #0d2a0d; width: 90%; max-width: 450px; padding: 20px; border: 3px solid var(--nh-gold); border-radius: 15px; }
         .time-btn { background: #111; color: #555; text-align: center; padding: 8px 0; font-size: 0.75rem; cursor: pointer; border: 1px solid #222; position: relative; }
 
+        /* 하단 버튼 통합 메탈 스타일 */
+        .metal-btn { 
+            background: var(--metal-gradient); 
+            color: #fff; 
+            border: 1px solid #666; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            height: 45px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
         #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
         #map-container { width: 100%; height: 300px; border-radius: 10px; border: 2px solid var(--nh-gold); margin-bottom: 15px; }
 
-        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; font-weight: 900 !important; }
-        .confirm-active { background: #fff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; font-weight: 900 !important; }
+        /* 강조 상태 색상 */
+        .radio-active { background: var(--nh-gold) !important; color: #000 !important; border: 1px solid #fff !important; }
+        .confirm-active { background: #ffffff !important; color: #000 !important; border: 2px solid var(--nh-gold) !important; animation: blink 0.8s infinite; }
+        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
         
         .time-btn.locked { cursor: not-allowed !important; opacity: 0.3 !important; }
         .time-btn.disabled { opacity: 0.2; cursor: default; filter: grayscale(1); }
-        .del-confirm-active { background: #ff4d4d !important; color: #ffffff !important; font-weight: 900 !important; animation: blink 0.8s infinite; border: 1px solid white !important; }
         @keyframes blink { 50% { opacity: 0.7; } }
     </style>
 </head>
@@ -57,10 +72,10 @@
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                <button onclick="closeModal()" style="color:#fff; border:1px solid #777; background:none; border-radius:8px; font-weight:bold; cursor:pointer; height:45px;">닫기</button>
-                <button id="mode-add" onclick="handleModeBtn('add')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">추가</button>
-                <button id="mode-edit" onclick="handleModeBtn('edit')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">수정</button>
-                <button id="mode-del" onclick="handleModeBtn('del')" style="background:#333; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">삭제</button>
+                <button onclick="closeModal()" class="metal-btn">닫기</button>
+                <button id="mode-add" onclick="handleModeBtn('add')" class="metal-btn">추가</button>
+                <button id="mode-edit" onclick="handleModeBtn('edit')" class="metal-btn">수정</button>
+                <button id="mode-del" onclick="handleModeBtn('del')" class="metal-btn">삭제</button>
             </div>
         </div>
     </div>
@@ -164,7 +179,7 @@
             });
         }
 
-        window.saveData = function() {
+        function saveData() {
             const name = document.getElementById('ev-name').value;
             if(!name || startSlot === null) return alert("내용과 시간을 선택하세요.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
@@ -177,22 +192,20 @@
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(storageKey, JSON.stringify(data)); 
-            renderCalendar(); 
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
-        };
+        }
 
-        window.deleteData = function() { 
+        function deleteData() { 
             let data = JSON.parse(localStorage.getItem(storageKey) || '{}');
             data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data)); 
-            renderCalendar(); 
+            localStorage.setItem(storageKey, JSON.stringify(data)); renderCalendar(); 
             startSlot = null; endSlot = null; editingIdx = -1;
             document.getElementById('ev-name').value = '';
             updateBtnUI(); initTime();
-        };
+        }
 
         function renderCalendar() {
             const container = document.getElementById('main-calendar');
@@ -201,7 +214,7 @@
             for(let i=0; i<new Date(2026,0,1).getDay(); i++) html += `<div class="cal-day" style="opacity:0.2;"></div>`;
             for(let d=1; d<=31; d++) {
                 const dData = data[d] || { events: [] };
-                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
+                let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = dData.events.find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#1a2a1a'}"></div>`; }).join('');
                 html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between; pointer-events:none;"><div class="day-num">${d}</div><div class="weather-box"><div class="w-loc">${dData.weather?.location || ''}</div></div></div><div class="time-bar">${barHtml}</div></div>`;
             }
             container.innerHTML = html; document.getElementById('year-title').innerText = `2026년 1월`;
