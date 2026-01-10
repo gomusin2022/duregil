@@ -130,16 +130,15 @@
     </div>
 
     <script>
-        /* [2. 자바스크립트: 국장님이 검수하신 모든 기능 포함] */
+        /* [2. 자바스크립트: 국장님이 검수한 성공 로직 전체] */
         
-        // 페이지가 열리자마자 실행되는 메인 함수
         function initSchedule() {
             const display = document.getElementById('main-display');
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth();
             
-            // 기본 선택 색상 설정
+            // 초기 선택 색상 (빨강)
             window.selectedColor = 'var(--point-red)';
 
             display.innerHTML = `
@@ -152,27 +151,29 @@
                     </div>
 
                     <div style="margin-top:15px; background:#252525; padding:15px; border-radius:10px; display:flex; flex-direction:column; gap:8px;">
-                        <input type="text" id="ev-name" placeholder="행사명" style="padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
-                        <input type="number" id="ev-date" placeholder="날짜(숫자만)" style="padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
                         
                         <div style="display:flex; gap:5px;">
-                            <div onclick="selectType('var(--point-red)', this)" style="flex:1; height:35px; background:var(--point-red); border:2px solid white; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">산악회</div>
-                            <div onclick="selectType('var(--point-green)', this)" style="flex:1; height:35px; background:var(--point-green); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">기타교실</div>
-                            <div onclick="selectType('var(--point-blue)', this)" style="flex:1; height:35px; background:var(--point-blue); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">범방위</div>
-                            <div onclick="selectType('var(--point-orange)', this)" style="flex:1; height:35px; background:var(--point-orange); border:2px solid transparent; cursor:pointer; font-size:0.7rem; color:black; font-weight:bold; display:flex; align-items:center; justify-content:center;">기타</div>
+                            <input type="text" id="ev-name" placeholder="행사명" style="flex:2; padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
+                            <input type="number" id="ev-date" placeholder="날짜" style="flex:1; padding:12px; background:#111; color:white; border:1px solid #555; border-radius:5px;">
                         </div>
-
-                        <button onclick="saveEvent()" style="padding:15px; background:var(--point-orange); color:black; border:none; font-weight:bold; cursor:pointer; border-radius:5px; font-size:1rem;">일정 저장</button>
+                        
+                        <div style="display:flex; gap:5px; align-items:stretch;">
+                            <button onclick="saveEvent()" style="flex:1.5; background:var(--point-orange); color:black; border:none; font-weight:bold; cursor:pointer; border-radius:5px; font-size:0.9rem;">저장</button>
+                            
+                            <div onclick="selectType('var(--point-red)', this)" style="flex:1; height:45px; background:var(--point-red); border:2px solid white; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">산악회</div>
+                            <div onclick="selectType('var(--point-green)', this)" style="flex:1; height:45px; background:var(--point-green); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">기타</div>
+                            <div onclick="selectType('var(--point-blue)', this)" style="flex:1; height:45px; background:var(--point-blue); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">범방위</div>
+                            <div onclick="selectType('var(--point-orange)', this)" style="flex:1; height:45px; background:var(--point-orange); border:2px solid transparent; cursor:pointer; border-radius:5px; display:flex; align-items:center; justify-content:center; color:black; font-weight:bold; font-size:0.6rem;">일반</div>
+                        </div>
                     </div>
 
-                    <h4 style="color:#888; margin:20px 0 10px 0;">등록된 일정</h4>
+                    <h4 style="color:#888; margin:20px 0 10px 0;">등록된 일정 목록</h4>
                     <ul id="ev-list" style="list-style:none; padding:0; margin:0;"></ul>
                 </div>
             `;
             renderEvents();
         }
 
-        // 달력 날짜 계산 및 점(dot) 표시 함수
         function generateCalendarDays(year, month) {
             const firstDay = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
@@ -188,19 +189,19 @@
             return daysHtml;
         }
 
-        // 색상 버튼 선택 처리
         window.selectType = function(color, el) {
             window.selectedColor = color;
             const btns = el.parentElement.children;
-            for(let b of btns) b.style.border = "2px solid transparent";
+            for(let b of btns) {
+                if(b.tagName === 'DIV') b.style.border = "2px solid transparent";
+            }
             el.style.border = "2px solid white";
         };
 
-        // 일정 저장 처리
         window.saveEvent = function() {
             const name = document.getElementById('ev-name').value;
             const date = document.getElementById('ev-date').value;
-            if(!name || !date) return alert("행사명과 날짜를 입력하세요!");
+            if(!name || !date) return alert("입력 정보가 부족합니다!");
 
             const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
             events.push({ id: Date.now(), name, date, type: window.selectedColor });
@@ -208,7 +209,6 @@
             initSchedule();
         };
 
-        // 저장된 일정 목록 표시
         function renderEvents() {
             const list = document.getElementById('ev-list');
             const events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
@@ -220,7 +220,6 @@
             `).join('');
         }
 
-        // 일정 삭제 처리
         window.deleteEvent = function(id) {
             if(!confirm("정말 삭제하시겠습니까?")) return;
             let events = JSON.parse(localStorage.getItem('dure_evs') || '[]');
@@ -229,7 +228,6 @@
             initSchedule();
         }
 
-        // [3. 화면 접속 시 자동 실행]
         window.onload = initSchedule;
     </script>
 </body>
