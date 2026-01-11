@@ -11,7 +11,7 @@
             --bg-dark: #0a0a0a; --accent-blue: #0070FF; --text-silver: #f5f5f5;
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
         }
-        body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
         /* 헤더 스타일 */
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; }
@@ -19,20 +19,29 @@
         .nav-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 8px; }
         .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
         
-        /* 달력 스타일 */
+        /* [수정] 달력 컨테이너 - 짤림 방지를 위해 flex로 영역 확보 */
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
-        .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
         
-        /* [복구] 비활성 날짜 스타일 (전달, 다음달) */
+        /* [핵심] 그리드 설정 - 줄 수에 따라 유동적으로 높이 조절 */
+        .cal-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            height: 100%; 
+            gap: 1px; 
+            background: #222; 
+        }
+
+        .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
+        
+        /* 비활성 날짜 스타일 (전달, 다음달) */
         .cal-day.prev-month, .cal-day.next-month { 
-            background: #050505; opacity: 0.35; pointer-events: none; 
+            background: #050505; opacity: 0.25; pointer-events: none; 
         }
         
-        .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; }
+        .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
         /* 날씨 3줄 스타일 */
-        .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; }
+        .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 1; }
         .w-line { white-space: nowrap; margin-bottom: 2px; }
         .w-temp { color: #fff; letter-spacing: -1px; }
         .w-icon-pop { color: var(--accent-blue); display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
@@ -118,7 +127,7 @@
             return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
         }
 
-        // [복구 및 개선] 전달/다음달 날짜로 빈칸 채우는 로직
+        // [복구 및 짤림 방지 최적화]
         function renderCalendar() {
             const { data } = getStore();
             const container = document.getElementById('main-calendar');
@@ -126,13 +135,15 @@
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
             
             let html = '';
-            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center;">${d}</div>`);
+            // 요일 헤더
+            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
             
             const firstDay = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
+            const lastDay = new Date(year, month + 1, 0).getDay(); // 이번 달 마지막 날의 요일
             const prevLastDate = new Date(year, month, 0).getDate();
 
-            // 1. 전달 날짜 채우기
+            // 1. 전달 날짜 채우기 (첫 주 빈칸)
             for(let i = firstDay - 1; i >= 0; i--) {
                 html += `<div class="cal-day prev-month"><div class="day-num">${prevLastDate - i}</div></div>`;
             }
@@ -145,16 +156,20 @@
                 html += `<div class="cal-day" onclick="openModal(${d})"><div class="day-num">${d}</div>${wHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
 
-            // 3. 다음 달 날짜 채우기 (총 42칸 기준)
-            const remaining = 42 - (firstDay + lastDate);
+            // 3. 다음 달 날짜 채우기 (마지막 주 빈칸만! 새로운 줄 생성 방지)
+            const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
             for(let d = 1; d <= remaining; d++) {
                 html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`;
             }
             
             container.innerHTML = html;
+
+            // [추가] 줄 수 계산 및 짤림 방지 동적 높이 할당
+            const totalCells = firstDay + lastDate + remaining;
+            const rows = totalCells / 7;
+            container.style.gridTemplateRows = `40px repeat(${rows}, 1fr)`;
         }
 
-        // --- 이하 로직 (국장님 원칙 3대 로직 포함) 동일 ---
         window.openModal = function(d) { 
             currentDay = d; 
             const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()];
@@ -300,17 +315,14 @@
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(key, JSON.stringify(data)); 
             renderCalendar(); 
-            startSlot = null; endSlot = null; 
-            if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; }
+            startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; }
             updateBtnUI(); initTime();
         }
 
         function deleteData() {
             const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(key, JSON.stringify(data)); 
-            renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
 
         function goDirections() {
