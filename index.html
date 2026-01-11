@@ -26,10 +26,10 @@
         
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
-        /* [수정] 지역명 위치: 날씨 2번째 줄(아이콘 라인) 높이 정렬 */
+        /* [수정] 높이 33px 고정 -> 날씨 2번째 줄 아이콘 옆에 정확히 배치 */
         .day-location-center {
             position: absolute; 
-            bottom: 33px; /* 3번째 줄(먼지)보다 위인 2번째 줄 높이로 고정 */
+            bottom: 33px; 
             left: 45%; 
             transform: translateX(-50%);
             color: var(--location-color); 
@@ -43,7 +43,7 @@
             z-index: 1; 
             pointer-events: none; 
             opacity: 0.9;
-            text-shadow: 2px 2px 4px rgba(0,0,0,1);
+            text-shadow: 2px 2px 4px #000;
         }
 
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
@@ -107,17 +107,7 @@
         </div>
     </div>
 
-    <div id="map-overlay">
-        <div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;">
-            <div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div>
-            <div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div>
-        </div>
-        <div id="map-container"></div>
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button>
-            <button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button>
-        </div>
-    </div>
+    <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
         const storageKeyPrefix = 'smart_v48_'; 
@@ -130,29 +120,25 @@
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
 
-        // [수정] 주소 가공 엔진: 가장 큰 단위를 우선 탐색 (구 > 군 > 읍 > 면 > 리)
+        // [정밀 보정된 한 단어 가공 엔진]
         function formatAddress(fullAddr) {
             if(!fullAddr) return "";
-            // 불필요한 국가명 제거 및 조각내기
-            const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 0);
+            // 대한민국 등 제거하고 공백/콤마로 완벽 분해
+            const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1);
             
-            // 1순위: '구' (도시 지역의 가장 큰 실효 단위)
-            const gu = parts.find(p => p.endsWith('구'));
-            if(gu) return gu;
+            // 1순위 구, 2순위 군, 3순위 읍, 4순위 면, 5순위 리
+            const priorities = ['구', '군', '읍', '면', '리'];
+            for (let unit of priorities) {
+                // 앞에서부터 찾으면 도(Province) 하위의 시(City)에 포함된 구/군을 먼저 찾게 됨
+                const found = parts.find(p => p.endsWith(unit));
+                if(found) return found;
+            }
 
-            // 2순위: '군' (지방 지역의 가장 큰 단위)
-            const gun = parts.find(p => p.endsWith('군'));
-            if(gun) return gun;
+            // 시(City) 단위를 제외하고 남은 것 중 동 단위를 마지막으로 확인
+            const dong = parts.find(p => p.endsWith('동'));
+            if(dong) return dong;
 
-            // 3순위: 읍, 면, 리 (시골 및 상세 지명)
-            const eub = parts.find(p => p.endsWith('읍')); if(eub) return eub;
-            const myeon = parts.find(p => p.endsWith('면')); if(myeon) return myeon;
-            const ri = parts.find(p => p.endsWith('리')); if(ri) return ri;
-
-            // 4순위: 동 (읍면동 중 동)
-            const dong = parts.find(p => p.endsWith('동')); if(dong) return dong;
-
-            // 시(City) 단위는 너무 크므로 무조건 제외하고, 위 조건에 안 걸리면 마지막 상세 지명이라도 반환
+            // 정 안되면 가장 마지막 조각 (보통 가장 구체적인 지명임)
             return parts[parts.length - 1];
         }
 
@@ -178,7 +164,12 @@
                 let locName = dData.weather?.addr ? formatAddress(dData.weather.addr) : "";
                 let locHtml = locName ? `<div class="day-location-center">${locName}</div>` : "";
 
-                html += `<div class="cal-day" onclick="openModal(${d})"><div class="day-num">${d}</div>${locHtml}${wHtml}<div class="time-bar">${barHtml}</div></div>`;
+                html += `<div class="cal-day" onclick="openModal(${d})">
+                            <div class="day-num">${d}</div>
+                            ${locHtml}
+                            ${wHtml}
+                            <div class="time-bar">${barHtml}</div>
+                         </div>`;
             }
             const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
             if(remaining > 0) { for(let d = 1; d <= remaining; d++) html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`; }
