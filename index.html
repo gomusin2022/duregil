@@ -34,15 +34,19 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         
-        /* 우측 기능 버튼 3층 */
+        /* 우측 기능 버튼 3층 (WEATHER/LOCATION/DIRECTIONS) */
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.62rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
-        .btn-weather { background: var(--metal-gradient); color: #fff; }
-        .btn-location { background: #e0e0e0; color: #000; border-color: #999; }
-        .btn-directions { background: #222; color: var(--accent-blue); border-color: var(--accent-blue); }
+        .f-btn { flex: 1; border-radius: 6px; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        
+        .btn-weather { background: var(--metal-gradient); color: #fff; padding: 4px 0; }
+        .btn-weather .l1 { font-size: 0.62rem; font-weight: 800; }
+        .btn-weather .l2 { font-size: 0.55rem; color: var(--accent-blue); margin-top: 1px; }
+
+        .btn-location { background: #e0e0e0; color: #000; font-size: 0.62rem; font-weight: 800; border-color: #999; }
+        .btn-directions { background: #222; color: var(--accent-blue); border-color: var(--accent-blue); font-size: 0.62rem; font-weight: 800; }
         .btn-directions:disabled { opacity: 0.2; cursor: not-allowed; }
 
-        /* 하단 관리 버튼 액션 스타일 */
+        /* 하단 버튼 액션 스타일 */
         .m-btn { background: var(--metal-gradient); color: white; height: 45px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 600; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; font-weight: 800; }
@@ -61,7 +65,7 @@
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
-            <div id="year-title" class="year-text" style="color:var(--accent-blue); font-weight:bold; font-size:1.2rem; min-width:120px; text-align:center;"></div>
+            <div id="year-title" style="color:var(--accent-blue); font-weight:bold; font-size:1.2rem; min-width:120px; text-align:center;"></div>
             <button class="nav-btn" onclick="changeMonth(1)">NEXT</button>
         </div>
     </div>
@@ -78,7 +82,10 @@
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 
                 <div class="function-btns">
-                    <button id="weather-btn" class="f-btn btn-weather">WEATHER<br>INFO</button>
+                    <button class="f-btn btn-weather">
+                        <div class="l1" id="w-btn-l1">WEATHER</div>
+                        <div class="l2" id="w-btn-l2">INFO</div>
+                    </button>
                     <button class="f-btn btn-location" onclick="openMap()">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn btn-directions" onclick="goDirections()" disabled>GET<br>DIRECTIONS</button>
                 </div>
@@ -109,11 +116,12 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v27_'; 
+        const storageKeyPrefix = 'smart_v26_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
+        // [추가] 전역 변수로 마지막 작업 위치 기억 (기본값 인천)
         let globalLastCoords = { lat: 37.4563, lng: 126.7052 }; 
         let globalLastAddr = "인천광역시";
 
@@ -166,10 +174,13 @@
             currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
         };
 
+        // [핵심] 위치 기억 기능 탑재된 지도 열기
         function openMap() {
             document.getElementById('map-overlay').style.display = 'flex';
             const { data } = getStore();
             const dayCoords = data[currentDay]?.weather?.coords;
+            
+            // 1순위: 해당 날짜에 저장된 좌표 / 2순위: 전역 기억(마지막 작업 위치) / 3순위: 기본 인천
             const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat;
             const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng;
 
@@ -188,6 +199,7 @@
             const displayAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr;
             document.getElementById('addr-display').innerText = "🏠 " + displayAddr;
             document.getElementById('temp-display').innerText = dayCoords ? data[currentDay].weather.temp : "--°C";
+
             setTimeout(() => map.invalidateSize(), 200);
         }
 
@@ -219,8 +231,11 @@
 
         function confirmMapLocation() {
             if(!tempCoords) return alert("Select location.");
+            
+            // [업데이트] 전역 기억 장소 갱신
             globalLastCoords = tempCoords;
             globalLastAddr = tempAddr || globalLastAddr;
+
             const { key, data } = getStore();
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr };
@@ -230,6 +245,7 @@
             openModal(currentDay);
         }
 
+        // --- ADD/SAVE 버튼 액션 및 입력 UI ---
         function handleModeBtn(mode) {
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
@@ -309,28 +325,19 @@
 
         function saveData() {
             const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return alert("Details required.");
+            if(!name || startSlot === null) return;
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const { key, data } = getStore();
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(key, JSON.stringify(data)); 
-            
-            renderCalendar(); 
-            // [수정] 자동 닫기 제거 후 초기화만 수행
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); closeModal();
         }
 
         function deleteData() {
             const { key, data } = getStore();
             data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(key, JSON.stringify(data)); 
-            renderCalendar(); 
-            // [수정] 자동 닫기 제거
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); closeModal();
         }
 
         function goDirections() {
