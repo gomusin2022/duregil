@@ -27,7 +27,6 @@
         .cal-day:active { background: #1a1a1a; }
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
         
-        /* 스탬프 모드 커서 설정 */
         .paste-mode-active { 
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>💰</text><rect y='35' width='50' height='16' rx='4' fill='orange'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
         }
@@ -41,24 +40,17 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 95%; max-width: 460px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #333; padding: 0 4px 8px 4px; }
-        #modal-date-title { color: #fff; margin: 0; font-size: 1.1rem; font-weight: 800; }
-        #modal-weather-info { display: flex; align-items: center; gap: 6px; color: var(--accent-blue); font-weight: 900; font-size: 0.95rem; }
-        .modal-loc-badge { color: var(--location-color); font-size: 0.8rem; background: #222; padding: 2px 6px; border-radius: 4px; border: 1px solid #444; }
-
+        
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
-        
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
-        
-        #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
-        #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
     </style>
 </head>
 <body id="main-body">
 
     <div class="header-container">
-        <div id="copy-status-bar" onclick="cancelPasteMode()">[💰스탬프 모드] 날짜를 클릭해 찍으세요. (종료: ESC)</div>
+        <div id="copy-status-bar" onclick="cancelPasteMode()">[💰스탬프 모드] 날짜를 클릭하여 재조합 붙여넣기 (종료: ESC)</div>
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
@@ -77,7 +69,7 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
-                    <button class="m-btn" style="color:#FF9500; height:32px; margin-top:4px; font-size:0.75rem;" onclick="activateStampMode()">COPY ALL DAY (STAMP)</button>
+                    <button class="m-btn" style="color:#FF9500; height:32px; margin-top:4px; font-size:0.75rem;" onclick="activateStampMode()">COPY DAY (STAMP)</button>
                 </div>
                 <div class="function-btns">
                     <button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
@@ -97,18 +89,18 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v95_'; 
+        const storageKeyPrefix = 'smart_v100_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
-        let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
-        
-        let stampClipboard = null; 
         let isStampMode = false;
+        let rawEvents = []; 
+        let rawCoords = null; 
+        let rawAddr = "";
 
+        const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
         let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; let globalLastAddr = lastLocation.addr;
         let defaultWeather = null;
-        const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
         function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } const dong = parts.find(p => p.endsWith('동')); if(dong) return dong; return parts[parts.length - 1] || ""; }
@@ -122,17 +114,15 @@
             } catch (e) { defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" }; }
         }
 
-        // [복사]
+        // [국장님 로직 1] 복사 시: 데이터 추출 및 보관 (날씨는 제외)
         function activateStampMode() {
             const { data } = getStore();
             const cur = data[currentDay];
-            if (!cur || cur.events.length === 0) return alert("복사할 일정이 없습니다.");
+            if (!cur || cur.events.length === 0) return alert("복사할 내용이 없습니다.");
             
-            stampClipboard = {
-                events: JSON.parse(JSON.stringify(cur.events)),
-                coords: cur.weather?.coords || null,
-                addr: cur.weather?.addr || ""
-            };
+            rawEvents = JSON.parse(JSON.stringify(cur.events));
+            rawCoords = cur.weather?.coords ? { ...cur.weather.coords } : null;
+            rawAddr = cur.weather?.addr || "";
 
             isStampMode = true;
             document.body.classList.add('paste-mode-active');
@@ -141,7 +131,7 @@
         }
 
         function cancelPasteMode() {
-            isStampMode = false; stampClipboard = null;
+            isStampMode = false;
             document.body.classList.remove('paste-mode-active');
             document.getElementById('copy-status-bar').style.display = 'none';
         }
@@ -149,40 +139,39 @@
         window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) cancelPasteMode(); });
 
         function handleDayClick(d) {
-            if (isStampMode) executeStampPaste(d);
+            if (isStampMode) executeRecombinedPaste(d);
             else openModal(d);
         }
 
-        // [붙여넣기 및 실시간 날씨 연동]
-        async function executeStampPaste(targetDay) {
-            if (!stampClipboard) return;
+        // [국장님 로직 2] 클릭 시: 실시간 데이터 재조합 및 저장
+        async function executeRecombinedPaste(targetDay) {
             const { key, data } = getStore();
             
-            // 1. 해당 날짜 데이터 구조 생성 및 일정 복제
-            if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
-            data[targetDay].events = JSON.parse(JSON.stringify(stampClipboard.events));
-            
-            // 2. 날씨 결과값은 비우고 '좌표'만 주입
-            data[targetDay].weather = { 
-                coords: stampClipboard.coords, 
-                addr: stampClipboard.addr 
+            // 1. 클릭한 날짜에 새로운 '하루 데이터' 틀을 만듬
+            // 기존 일정에 합칠지, 새로 덮어쓸지 결정 (여기선 완벽한 복제를 위해 덮어씀)
+            data[targetDay] = {
+                events: JSON.parse(JSON.stringify(rawEvents)),
+                weather: {
+                    coords: rawCoords,
+                    addr: rawAddr
+                    // 기온, 아이콘 등은 아예 없음 (재조합 초기상태)
+                }
             };
 
-            // 3. 일단 화면을 먼저 그려서 일정이 들어갔음을 보여줌
+            // 2. 즉시 1차 저장하여 일정 표시
             localStorage.setItem(key, JSON.stringify(data));
             renderCalendar();
 
-            // 4. 좌표가 있다면 '즉시' 서버에서 그날의 날씨를 가져옴
-            if (stampClipboard.coords) {
+            // 3. 좌표가 있다면 그 자리에서 '그 날짜'의 날씨를 수신하여 데이터 완성
+            if (rawCoords) {
                 try {
-                    const lat = stampClipboard.coords.lat;
-                    const lng = stampClipboard.coords.lng;
+                    const lat = rawCoords.lat; const lng = rawCoords.lng;
                     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
                     const wData = await res.json();
                     
-                    // 신규 데이터 조합
+                    // 완성형 데이터로 재조합
                     data[targetDay].weather = {
-                        coords: { lat, lng }, addr: stampClipboard.addr,
+                        coords: { lat, lng }, addr: rawAddr,
                         temp: Math.round(wData.current_weather.temperature) + "°C",
                         min: Math.round(wData.daily.temperature_2m_min[0]) + "°",
                         max: Math.round(wData.daily.temperature_2m_max[0]) + "°",
@@ -193,10 +182,10 @@
                         dustClass: wData.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
                     };
                     
-                    // 날씨 정보가 업데이트 되었으므로 다시 저장 후 렌더링
+                    // 4. 최종 저장 및 표출
                     localStorage.setItem(key, JSON.stringify(data));
                     renderCalendar();
-                } catch(e) { console.log("날씨 수신 실패"); }
+                } catch(e) { console.log("Weather recombine failed"); }
             }
         }
 
@@ -213,7 +202,7 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dData.weather || {}; let locName = w.addr ? formatAddress(w.addr) : "";
-                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div><div class="w-line" style="font-size:0.95rem;font-weight:800;letter-spacing:-1px;"><span>${w.wind}</span> <span class="${w.dustClass}">${w.dust}</span></div></div>` : "";
+                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div><div class="w-line" style="font-size:0.95rem;font-weight:800;letter-spacing:-1px;"><span>${w.wind}</span> <span class="${w.wind.includes('강')?'dust-bad':'dust-good'}">${w.wind.includes('강')?'나쁨':'좋음'}</span></div></div>` : "";
                 html += `<div class="cal-day" onclick="handleDayClick(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
             const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
@@ -222,25 +211,25 @@
         }
 
         window.openModal = function(d) { currentDay = d; const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; document.getElementById('input-modal').style.display = 'flex'; resetToInputMode(); };
+        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
         function refreshModalUI() { 
             const { data } = getStore(); 
-            const directionsBtn = document.getElementById('directions-btn'); const locBtn = document.getElementById('loc-set-btn'); 
+            const locBtn = document.getElementById('loc-set-btn'); const directionsBtn = document.getElementById('directions-btn');
             const wBtnL1 = document.getElementById('w-btn-l1'); const wBtnL2 = document.getElementById('w-btn-l2');
-            const modalWeatherBox = document.getElementById('modal-weather-info');
             const w = data[currentDay]?.weather;
             const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
             wBtnL1.innerHTML = `${targetW.icon} ${targetW.pop}%`; wBtnL2.innerHTML = `${targetW.min}/${targetW.max}`; locBtn.innerHTML = `${targetAddr}<br>SET`; 
-            modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span><span>${targetW.icon}</span><span>${targetW.pop}%</span><span class="modal-temp-range">${targetW.min}/${targetW.max}</span>`;
             directionsBtn.disabled = !(w && w.coords);
         }
 
+        // 지도로직 및 기본운영 (기존과 동일하되 재조합을 방해하지 않음)
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; tempWeather = dayCoords ? data[currentDay].weather : (defaultWeather || {}); document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
-        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 데이터를 불러오는 중입니다. 잠시만 기다려주세요."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
-        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; resetToInputMode(); }
+        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
+        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
         function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
         function updateBtnUI() { const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; }); if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } } else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } } else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } } }
         function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
@@ -248,9 +237,8 @@
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
         function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; } updateBtnUI(); initTime(); }
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
-        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); resetToInputMode(); } }
+        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
-        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
         window.onload = async () => { await fetchLastLocationWeather(); renderCalendar(); };
     </script>
 </body>
