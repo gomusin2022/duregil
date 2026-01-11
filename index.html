@@ -10,7 +10,7 @@
         :root {
             --bg-dark: #0a0a0a; --accent-blue: #0070FF; --text-silver: #f5f5f5;
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
-            --location-color: #E0E0E0; /* 국장님께 추천드리는 실버 화이트 색상 */
+            --location-color: #E0E0E0; 
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
@@ -26,7 +26,7 @@
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
-        /* [추가] 일일 버튼 중앙 장소 표시 스타일 */
+        /* 달력 중앙 장소 표시 */
         .day-location-center {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: var(--location-color); font-size: 0.85rem; font-weight: 700;
@@ -41,13 +41,24 @@
         .w-extra { font-size: 0.95rem; font-weight: 800; letter-spacing: -1px; }
         .dust-good { color: #00FF00; } .dust-normal { color: #FFFFE0; } .dust-bad { color: #FF9500; }    
 
+        /* 모달 및 버튼 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
         
-        /* [수정] 로케이션 버튼 전용 스타일 - 바탕색은 유지, 글씨색만 적용 */
-        #loc-set-btn { color: var(--location-color); background: #e0e0e0; border-color: #999; }
+        /* [중요] 3단 기능 버튼 테마 통합 - 메탈 다크 그레이 */
+        .f-btn { 
+            flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; 
+            border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; text-align: center; line-height: 1.2;
+            background: var(--metal-gradient); /* 메탈 다크 그레이 바탕 통일 */
+        }
+        
+        /* 버튼별 개별 글씨색 적용 */
+        #weather-btn { color: #FFFFFF; }      /* 화이트 */
+        #loc-set-btn { color: var(--location-color); } /* 실버 화이트 */
+        #directions-btn { color: var(--accent-blue); } /* 액센트 블루 */
+        #directions-btn:disabled { opacity: 0.2; }
 
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 48px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; }
@@ -80,9 +91,9 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; gap: 5px; background: #000; padding: 5px; border-radius: 6px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1.1rem;" placeholder="Enter details..."></textarea>
                 <div class="function-btns">
-                    <button id="weather-btn" class="f-btn" style="background:var(--metal-gradient); color:#fff;"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
+                    <button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
                     <button id="loc-set-btn" class="f-btn" onclick="openMap()">LOCATION<br>SET</button>
-                    <button id="directions-btn" class="f-btn" onclick="goDirections()" disabled style="background:#222; color:var(--accent-blue); border-color:var(--accent-blue);">GET<br>DIR</button>
+                    <button id="directions-btn" class="f-btn" onclick="goDirections()" disabled>GET<br>DIR</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
@@ -107,7 +118,7 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v42_'; 
+        const storageKeyPrefix = 'smart_v43_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -127,7 +138,6 @@
             const container = document.getElementById('main-calendar');
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
-            
             let html = '';
             ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
             
@@ -142,16 +152,9 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let wHtml = dData.weather?.temp ? `<div class="weather-badge-main"><div class="w-line w-temp">${dData.weather.min}/${dData.weather.max}</div><div class="w-line w-icon-pop"><span>${dData.weather.icon}</span><span>${dData.weather.pop}%</span></div><div class="w-line w-extra"><span>${dData.weather.wind}</span> <span class="${dData.weather.dustClass}">${dData.weather.dust}</span></div></div>` : "";
-                
-                // [복구] 중앙 로케이션 텍스트 표시
                 let locHtml = dData.weather?.addr ? `<div class="day-location-center">${dData.weather.addr}</div>` : "";
 
-                html += `<div class="cal-day" onclick="openModal(${d})">
-                            <div class="day-num">${d}</div>
-                            ${locHtml}
-                            ${wHtml}
-                            <div class="time-bar">${barHtml}</div>
-                         </div>`;
+                html += `<div class="cal-day" onclick="openModal(${d})"><div class="day-num">${d}</div>${locHtml}${wHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
 
             const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
@@ -184,7 +187,6 @@
                 directionsBtn.disabled = false;
                 document.getElementById('w-btn-l1').innerHTML = `${data[currentDay].weather.icon} ${data[currentDay].weather.temp}`;
                 document.getElementById('w-btn-l2').innerHTML = `${data[currentDay].weather.min}/${data[currentDay].weather.max}`;
-                // [수정] 바탕색은 그대로, 텍스트만 설정된 값으로 변경
                 locBtn.innerHTML = `${data[currentDay].weather.addr}<br>SET`;
             } else {
                 directionsBtn.disabled = true;
