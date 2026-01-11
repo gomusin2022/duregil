@@ -23,6 +23,10 @@
         
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
+        
+        /* 요일 헤더 전용 스타일 (높이 절반 보정) */
+        .cal-header { color: #888; font-weight: 800; padding: 4px 0; text-align: center; font-size: 0.7rem; background: #111; line-height: 1; }
+
         .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; transition: 0.2s; }
         .cal-day:active { background: #1a1a1a; }
         .cal-day.prev-month, .cal-day.prev-month * { opacity: 0; pointer-events: none; }
@@ -37,29 +41,21 @@
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
         .w-line { display: flex; justify-content: flex-end; align-items: center; white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } 
         .w-loc-inline { color: var(--location-color); font-size: 0.95rem; font-weight: 900; margin-right: 8px; opacity: 0.9; text-shadow: 1px 1px 2px #000; }
-        .dust-good { color: #00FF00; } .dust-normal { color: #FFFFE0; } .dust-bad { color: #FF9500; }    
-
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 95%; max-width: 460px; padding: 12px; border: 1px solid #333; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #333; padding: 0 4px 8px 4px; }
         #modal-date-title { color: #fff; margin: 0; font-size: 1.1rem; font-weight: 800; }
         #modal-weather-info { display: flex; align-items: center; gap: 6px; color: var(--accent-blue); font-weight: 900; font-size: 0.95rem; }
-        .modal-loc-badge { color: var(--location-color); font-size: 0.8rem; background: #222; padding: 2px 6px; border-radius: 4px; border: 1px solid #444; }
-        .modal-temp-range { color: #fff; font-size: 0.9rem; letter-spacing: -0.5px; margin-left: 2px; }
 
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
         
-        .cp-container { display: flex; gap: 4px; margin-top: 4px; }
-        .cp-btn { flex: 1; height: 32px; border-radius: 6px; border: 1px solid #444; background: var(--metal-gradient); color: #ccc; font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
-        .cp-btn:active { transform: scale(0.95); }
-
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.6; } }
 
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
@@ -68,7 +64,7 @@
 <body id="main-body">
 
     <div class="header-container">
-        <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC 또는 클릭)</div>
+        <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
@@ -121,11 +117,8 @@
         let isStampMode = false;
 
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
-        
-        // [중요] 지침대로 서울 강남구(강남역 인근)를 기본 영점으로 세팅
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
-        let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; 
-        let globalLastAddr = lastLocation.addr;
+        let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; let globalLastAddr = lastLocation.addr;
         let defaultWeather = null;
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
@@ -194,7 +187,8 @@
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
             let html = '';
-            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
+            // 요일 칸 높이 및 스타일 보정
+            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div class="cal-header" style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}">${d}</div>`);
             const firstDay = new Date(year, month, 1).getDay(); const lastDate = new Date(year, month + 1, 0).getDate();
             const prevLastDate = new Date(year, month, 0).getDate();
             for(let i = firstDay - 1; i >= 0; i--) html += `<div class="cal-day prev-month"><div class="day-num">${prevLastDate - i}</div></div>`;
@@ -207,22 +201,20 @@
             }
             const remaining = (new Date(year, month + 1, 0).getDay() === 6) ? 0 : 6 - new Date(year, month + 1, 0).getDay();
             for(let d = 1; d <= remaining; d++) html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`;
-            container.innerHTML = html;
+            container.innerHTML = html; 
+            // 요일 칸 높이 18px로 고정하여 공간 확보
+            container.style.gridTemplateRows = `18px repeat(${Math.ceil((firstDay + lastDate + remaining) / 7)}, 1fr)`;
         }
 
-        // [핵심 보정] 모달 오픈 시 빈 날짜라면 직전 로케이션 및 서울 강남 자동 적용
         window.openModal = function(d) { 
             currentDay = d; 
             const { key, data } = getStore();
-            
-            // 만약 해당 날짜의 데이터가 아예 없다면 직전 위치/날씨 강제 주입
             if (!data[currentDay] || !data[currentDay].weather || !data[currentDay].weather.temp) {
                 if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
                 data[currentDay].weather = { ...defaultWeather, coords: globalLastCoords, addr: globalLastAddr };
                 localStorage.setItem(key, JSON.stringify(data));
                 renderCalendar();
             }
-
             const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; 
             document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; 
             document.getElementById('input-modal').style.display = 'flex'; 
@@ -244,10 +236,9 @@
             directionsBtn.disabled = !(w && w.coords);
         }
 
-        // 지도로직 유지
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; tempWeather = dayCoords ? data[currentDay].weather : (defaultWeather || {}); document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
-        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
+        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 데이터를 불러오는 중입니다. 잠시만 기다려주세요."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
         function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
         function updateBtnUI() { const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; }); if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } } else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } } else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } } }
