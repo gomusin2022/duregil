@@ -14,22 +14,26 @@
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
-        .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; position: relative; }
+        /* [핵심 수정] 헤더 컨테이너: 한 줄 배치를 위한 플렉스박스 최적화 */
+        .header-container { 
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 15px; background: linear-gradient(145deg, #1a1a1a, #000000); 
+            border-bottom: 1px solid #333; flex-shrink: 0; position: relative; min-height: 50px;
+        }
         #copy-status-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--ai-orange); color: #000; font-weight: 900; align-items: center; justify-content: center; z-index: 100; font-size: 0.95rem; cursor: pointer; }
 
-        .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+        .header-title { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: 1px; margin: 0; text-transform: uppercase; white-space: nowrap; }
         
-        /* [수정] 내비게이션 바 레이아웃: 날짜와 날씨를 우측으로 통합 */
-        .nav-container { display: flex; align-items: center; gap: 15px; margin-top: 8px; padding: 0 15px; }
+        /* [수정] 우측 통합 컨트롤 영역 */
+        .header-right-zone { display: flex; align-items: center; gap: 15px; }
+
+        .nav-container { display: flex; align-items: center; gap: 8px; }
+        #year-title { color: var(--accent-blue); font-weight: bold; font-size: 1.3rem; min-width: 100px; text-align: center; }
         
-        /* 우측 정보 그룹 (날짜 + 날씨) */
-        .top-info-group { margin-left: auto; display: flex; align-items: center; gap: 20px; }
-        
-        #year-title { color: var(--accent-blue); font-weight: bold; font-size: 1.3rem; text-align: right; }
-        #top-weather-display { display: flex; align-items: center; gap: 10px; font-weight: 900; color: var(--accent-blue); font-size: 0.9rem; }
+        #top-weather-display { display: flex; align-items: center; gap: 10px; font-weight: 900; color: var(--accent-blue); font-size: 0.9rem; border-left: 1px solid #333; padding-left: 15px; }
         .top-w-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
-        .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+        .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-weight: bold; font-size: 0.75rem; }
         
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
@@ -37,8 +41,7 @@
 
         .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; transition: 0.2s; }
         .cal-day:active { background: #1a1a1a; }
-        .cal-day.prev-month, .cal-day.prev-month * { opacity: 0; pointer-events: none; }
-        .cal-day.next-month, .cal-day.next-month * { opacity: 0; pointer-events: none; }
+        .cal-day.prev-month, .cal-day.next-month { opacity: 0; pointer-events: none; }
         
         .stamp-mode-active { 
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>💰</text><rect y='35' width='50' height='16' rx='4' fill='orange'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
@@ -49,12 +52,10 @@
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
         .w-line { display: flex; justify-content: flex-end; align-items: center; white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } 
         .w-loc-inline { color: var(--location-color); font-size: 0.95rem; font-weight: 900; margin-right: 8px; opacity: 0.9; text-shadow: 1px 1px 2px #000; }
-        .dust-good { color: #00FF00; } .dust-normal { color: #FFFFE0; } .dust-bad { color: #FF9500; }
-
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 95%; max-width: 460px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
-        #modal-weather-info { display: flex; align-items: center; gap: 6px; color: var(--accent-blue); font-weight: 900; font-size: 0.95rem; }
-
+        
         .ai-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; justify-content: center; align-items: center; }
         .ai-content { background: #111; width: 90%; max-width: 400px; padding: 20px; border: 2px solid var(--ai-orange); border-radius: 15px; box-shadow: 0 0 30px rgba(255,149,0,0.3); }
 
@@ -64,9 +65,6 @@
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
-        .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
-        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; }
-
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
     </style>
@@ -75,15 +73,16 @@
 
     <div class="header-container">
         <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
+        
         <div class="header-title">SMART SCHEDULER</div>
-        <div class="nav-container">
-            <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
-            <button class="nav-btn" onclick="changeMonth(1)">NEXT</button>
-            
-            <div class="top-info-group">
+        
+        <div class="header-right-zone">
+            <div class="nav-container">
+                <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
                 <div id="year-title"></div>
-                <div id="top-weather-display"></div>
+                <button class="nav-btn" onclick="changeMonth(1)">▶</button>
             </div>
+            <div id="top-weather-display"></div>
         </div>
     </div>
 
@@ -92,7 +91,7 @@
     <div id="ai-modal" class="ai-modal">
         <div class="ai-content">
             <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서</h3>
-            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 수요일 피아노레슨 오전10시부터 오후1시까지"></textarea>
+            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 클래식기타 레슨 오전10시부터 오후1시까지"></textarea>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
                 <button class="m-btn" onclick="closeAI()">닫기</button>
@@ -102,7 +101,10 @@
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h3 id="modal-date-title"></h3><div id="modal-weather-info"></div></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 id="modal-date-title" style="margin:0;"></h3>
+                <div id="modal-weather-info" style="color:var(--accent-blue); font-weight:900;"></div>
+            </div>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 8px; background: #000; padding: 4px; border-radius: 6px;"></div>
             <div style="display: flex; gap: 8px; margin-bottom: 12px; height: 140px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
@@ -130,12 +132,11 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v2500_'; 
+        const storageKeyPrefix = 'smart_v3000_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
-        let memoEvents = []; let memoCoords = null; let memoAddr = "";
-        let isStampMode = false;
+        let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false;
 
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
@@ -174,7 +175,7 @@
                 if(text.includes("오전") && h === 12) h = 0;
                 return h;
             }
-            let startH = 10, endH = 12;
+            let startH = 10, endH = 13;
             const parts = cmd.split("부터");
             if(parts.length > 1) {
                 startH = parseSmartHour(parts[0]) || 10;
@@ -206,7 +207,7 @@
                 await Promise.all(promises);
                 localStorage.setItem(key, JSON.stringify(data));
                 renderCalendar();
-                alert(`모든 일정이 마지막 날까지 완벽히 등록되었습니다.`);
+                alert(`모든 일정이 완벽히 등록되었습니다.`);
                 closeAI();
             }
         }
@@ -263,7 +264,7 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dData.weather || {}; let locName = w.addr ? formatAddress(w.addr) : "";
-                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div></div>` : "";
+                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span></div></div>` : "";
                 html += `<div class="cal-day" onclick="handleDayAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
             const remaining = (new Date(year, month + 1, 0).getDay() === 6) ? 0 : 6 - new Date(year, month + 1, 0).getDay();
