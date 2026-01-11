@@ -13,35 +13,41 @@
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 헤더 스타일 */
+        /* 헤더/달력 스타일 */
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; }
         .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
         .nav-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 8px; }
         .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
         
-        /* 달력 스타일 */
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
         .cal-day { background: #0a0a0a; padding: 6px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
         .day-num { font-size: 1.2rem; font-weight: 700; color: #fff; }
         .weather-badge { color: var(--accent-blue); font-size: 0.65rem; font-weight: 900; background: rgba(0, 112, 255, 0.1); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(0, 112, 255, 0.3); }
 
-        /* [수정] 우측 기능 버튼 3분할 3층 구조 */
-        .function-btns { display: flex; flex-direction: column; width: 100px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.62rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; text-transform: uppercase; }
+        /* 모달 및 입력창 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         
-        .btn-weather { background: var(--metal-gradient); color: #fff; } /* 기존 SYNC 자리를 WEATHER(기능예정) 혹은 정보확인으로 활용 */
+        /* 우측 기능 버튼 3층 */
+        .function-btns { display: flex; flex-direction: column; width: 100px; gap: 4px; }
+        .f-btn { flex: 1; border-radius: 6px; font-size: 0.62rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+        .btn-weather { background: var(--metal-gradient); color: #fff; }
         .btn-location { background: #e0e0e0; color: #000; border-color: #999; }
         .btn-directions { background: #222; color: var(--accent-blue); border-color: var(--accent-blue); }
         .btn-directions:disabled { opacity: 0.2; color: #555; border-color: #333; cursor: not-allowed; }
 
+        /* 하단 관리 버튼 액션 스타일 */
+        .m-btn { background: var(--metal-gradient); color: white; height: 45px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 600; }
+        .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
+        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; font-weight: 800; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 6px; background: #151515; margin-top: auto; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
+        .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; border: 1px solid #252525; border-radius: 4px; cursor: pointer; }
         
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
-        .weather-panel { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid var(--accent-blue); display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -59,47 +65,43 @@
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 10px 0;"></h3>
+            <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 10px 0; font-weight: 400;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 12px; background: #000; padding: 4px; border-radius: 6px;"></div>
             
             <div style="display: flex; gap: 10px; margin-bottom: 20px; height: 120px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
-                
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 
                 <div class="function-btns">
-                    <button id="weather-btn" class="f-btn btn-weather" onclick="alert('Checking detailed weather...')">WEATHER<br>INFO</button>
+                    <button id="weather-btn" class="f-btn btn-weather">WEATHER<br>INFO</button>
                     <button class="f-btn btn-location" onclick="openMap()">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn btn-directions" onclick="goDirections()" disabled>GET<br>DIRECTIONS</button>
                 </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                <button onclick="closeModal()" style="background:none; border:1px solid #333; color:white; height:45px; border-radius:8px; cursor:pointer;">CLOSE</button>
-                <button id="mode-add" onclick="handleModeBtn('add')" style="background:var(--metal-gradient); color:white; border-radius:8px; border:1px solid #444; cursor:pointer;">ADD</button>
-                <button id="mode-edit" onclick="handleModeBtn('edit')" style="background:var(--metal-gradient); color:white; border-radius:8px; border:1px solid #444; cursor:pointer;">EDIT</button>
-                <button id="mode-del" onclick="handleModeBtn('del')" style="background:var(--metal-gradient); color:white; border-radius:8px; border:1px solid #444; cursor:pointer;">DELETE</button>
+                <button onclick="closeModal()" class="m-btn" style="background:none;">CLOSE</button>
+                <button id="mode-add" onclick="handleModeBtn('add')" class="m-btn">ADD</button>
+                <button id="mode-edit" onclick="handleModeBtn('edit')" class="m-btn">EDIT</button>
+                <button id="mode-del" onclick="handleModeBtn('del')" class="m-btn">DELETE</button>
             </div>
         </div>
     </div>
 
     <div id="map-overlay">
-        <div class="weather-panel">
-            <div style="color: #fff;">
-                <div id="addr-display" style="font-weight: bold;">Click on Map</div>
-                <div style="font-size: 0.8rem; color: #888;">Setting location will sync weather & directions.</div>
-            </div>
-            <div id="temp-display" style="color: var(--accent-blue); font-size: 1.6rem; font-weight: 900;">--°C</div>
+        <div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;">
+            <div style="color:#fff;"><div id="addr-display" style="font-weight:bold;">Click on Map</div></div>
+            <div id="temp-display" style="color:var(--accent-blue); font-size:1.6rem; font-weight:900;">--°C</div>
         </div>
         <div id="map-container"></div>
-        <div style="display:flex; gap:10px; margin-top: 15px;">
-            <button onclick="closeMap()" style="flex:1; padding:15px; background:#333; color:white; border:none; border-radius:10px; font-weight: bold;">CANCEL</button>
-            <button onclick="confirmMapLocation()" style="flex:2; padding:15px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px; font-size:1.1rem;">CONFIRM LOCATION</button>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button onclick="closeMap()" style="flex:1; padding:15px; background:#333; color:white; border:none; border-radius:10px;">CANCEL</button>
+            <button onclick="confirmMapLocation()" style="flex:2; padding:15px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px;">CONFIRM</button>
         </div>
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v21_'; 
+        const storageKeyPrefix = 'smart_v22_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = "", tempAddr = "";
@@ -140,17 +142,118 @@
 
             if(data[d]?.weather?.coords) {
                 directionsBtn.disabled = false;
-                directionsBtn.style.borderColor = "var(--accent-blue)";
-                directionsBtn.style.color = "var(--accent-blue)";
                 weatherBtn.innerText = "WEATHER\n" + data[d].weather.info;
             } else {
                 directionsBtn.disabled = true;
-                directionsBtn.style.borderColor = "#333";
-                directionsBtn.style.color = "#555";
                 weatherBtn.innerText = "WEATHER\nINFO";
             }
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
+            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; 
+            currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
         };
+
+        function handleModeBtn(mode) {
+            if (currentMode === mode) {
+                if (mode === 'add' && startSlot !== null) saveData();
+                else if (mode === 'edit' && editingIdx !== -1) saveData();
+                else if (mode === 'del' && editingIdx !== -1) deleteData();
+                return;
+            }
+            currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; 
+            document.getElementById('ev-name').value = ''; 
+            updateBtnUI(); initTime(); 
+        }
+
+        // [복구] ADD -> SAVE 변환 로직
+        function updateBtnUI() {
+            const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del');
+            [addBtn, editBtn, delBtn].forEach(b => { 
+                b.classList.remove('radio-active', 'confirm-active');
+                b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DELETE";
+            });
+            if (currentMode === 'add') {
+                addBtn.classList.add('radio-active');
+                if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); }
+            } else if (currentMode === 'edit') {
+                editBtn.classList.add('radio-active');
+                if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); }
+            } else if (currentMode === 'del') {
+                delBtn.classList.add('radio-active');
+                if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); }
+            }
+        }
+
+        function initTime() {
+            const t = document.getElementById('time-picker'); t.innerHTML = '';
+            const { data } = getStore();
+            const evs = data[currentDay]?.events || [];
+            for(let i=0; i<12; i++) {
+                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
+                const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
+                const isEditingThis = (fIdx !== -1 && fIdx === editingIdx);
+                
+                if(fIdx !== -1) {
+                    b.style.background = isEditingThis ? selectedColor : evs[fIdx].color;
+                    b.style.color = "#000";
+                    if(isEditingThis) b.style.outline = "2px solid #fff";
+                }
+
+                b.onclick = () => {
+                    if(fIdx !== -1 && currentMode !== 'add') {
+                        if(!isEditingThis) {
+                            editingIdx = fIdx; const e = evs[fIdx];
+                            startSlot = e.start; endSlot = e.end; selectedColor = e.color;
+                            document.getElementById('ev-name').value = e.name;
+                            updateBtnUI(); initPalette(); initTime(); return;
+                        }
+                    }
+                    if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; }
+                    updateTimeUI(); updateBtnUI();
+                };
+                t.appendChild(b);
+            }
+        }
+
+        function updateTimeUI() {
+            const btns = document.querySelectorAll('#time-picker div');
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
+            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            btns.forEach((btn, idx) => { 
+                if(startSlot !== null && idx >= s && idx <= e) { 
+                    btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; 
+                } else { 
+                    btn.style.outline = "none"; 
+                } 
+            });
+        }
+
+        // [복구] 팔레트 활성화 표시
+        function initPalette() {
+            const p = document.getElementById('color-palette'); p.innerHTML = '';
+            ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
+                const d = document.createElement('div'); 
+                d.style.background = c; d.style.height = '28px'; d.style.borderRadius = '4px'; d.style.cursor = 'pointer';
+                d.style.border = (selectedColor === c) ? "2px solid #fff" : "1px solid #333";
+                d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; 
+                p.appendChild(d);
+            });
+        }
+
+        function saveData() {
+            const name = document.getElementById('ev-name').value;
+            if(!name || startSlot === null) return alert("Details required.");
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            const { key, data } = getStore();
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+            const ev = { name, start: s, end: e, color: selectedColor };
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); closeModal();
+        }
+
+        function deleteData() {
+            const { key, data } = getStore();
+            data[currentDay].events.splice(editingIdx, 1);
+            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); closeModal();
+        }
 
         function openMap() {
             document.getElementById('map-overlay').style.display = 'flex';
@@ -192,64 +295,12 @@
             const { data } = getStore();
             const coords = data[currentDay]?.weather?.coords;
             const addr = data[currentDay]?.weather?.addr || "Destination";
-            if(coords) {
-                const url = `https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`;
-                window.open(url, '_blank');
-            }
+            if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); }
         }
 
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
-        function handleModeBtn(mode) { currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; updateBtnUI(); initTime(); }
-        function updateBtnUI() {
-            const btns = [document.getElementById('mode-add'), document.getElementById('mode-edit'), document.getElementById('mode-del')];
-            btns.forEach(b => b.style.border = (b.id.includes(currentMode)) ? "1.5px solid var(--accent-blue)" : "1px solid #444");
-        }
-        function initTime() {
-            const t = document.getElementById('time-picker'); t.innerHTML = '';
-            const { data } = getStore();
-            const evs = data[currentDay]?.events || [];
-            for(let i=0; i<12; i++) {
-                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
-                const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
-                if(fIdx !== -1) b.style.background = evs[fIdx].color;
-                b.onclick = () => {
-                    if(fIdx !== -1 && currentMode !== 'add') {
-                        editingIdx = fIdx; const e = evs[fIdx];
-                        startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                        document.getElementById('ev-name').value = e.name;
-                        initTime(); return;
-                    }
-                    if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; }
-                    updateTimeUI();
-                };
-                t.appendChild(b);
-            }
-        }
-        function updateTimeUI() {
-            const btns = document.querySelectorAll('#time-picker div');
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
-            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } });
-        }
-        function saveData() {
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return;
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            const { key, data } = getStore();
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            const ev = { name, start: s, end: e, color: selectedColor };
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); closeModal();
-        }
-        function initPalette() {
-            const p = document.getElementById('color-palette'); p.innerHTML = '';
-            ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); d.style.background = c; d.style.height = '28px'; d.style.borderRadius = '4px'; d.style.cursor = 'pointer';
-                d.onclick = () => { selectedColor = c; if(startSlot !== null) updateTimeUI(); }; p.appendChild(d);
-            });
-        }
         window.onload = renderCalendar;
     </script>
 </body>
