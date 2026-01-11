@@ -15,7 +15,6 @@
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; position: relative; }
-        /* 복사 상태 안내 바 */
         #copy-status-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FF9500; color: #000; font-weight: 900; align-items: center; justify-content: center; z-index: 100; font-size: 0.95rem; cursor: pointer; }
 
         .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
@@ -28,7 +27,6 @@
         .cal-day:active { background: #1a1a1a; }
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
         
-        /* 국장님 전용 💰도장 마우스 */
         .paste-mode-active { 
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>💰</text><rect y='35' width='50' height='16' rx='4' fill='orange'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
         }
@@ -60,7 +58,7 @@
 <body id="main-body">
 
     <div class="header-container">
-        <div id="copy-status-bar" onclick="deactivatePasteMode()">[스탬프 모드 활성] 달력을 클릭하여 재조합 붙여넣기 (종료: ESC)</div>
+        <div id="copy-status-bar" onclick="deactivatePasteMode()">[💰스탬프 모드] 달력을 클릭하여 데이터 재조합 (종료: ESC)</div>
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
@@ -75,22 +73,18 @@
         <div class="modal-content">
             <div class="modal-header"><h3 id="modal-date-title"></h3><div id="modal-weather-info"></div></div>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 8px; background: #000; padding: 4px; border-radius: 6px;"></div>
-            
             <div style="display: flex; gap: 8px; margin-bottom: 12px; height: 140px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
-                
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
                     <button class="m-btn" style="color:#FF9500; height:32px; margin-top:4px; font-size:0.75rem;" onclick="activatePasteMode()">COPY ALL DAY (STAMP)</button>
                 </div>
-
                 <div class="function-btns">
                     <button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
                     <button id="loc-set-btn" class="f-btn" onclick="openMap()">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn" onclick="goDirections()" disabled>GET<br>DIR</button>
                 </div>
             </div>
-            
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
                 <button onclick="closeModal()" class="m-btn" style="background:none;">CLOSE</button>
                 <button id="mode-add" onclick="handleModeBtn('add')" class="m-btn">ADD</button>
@@ -103,13 +97,13 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v120_'; 
+        const storageKeyPrefix = 'smart_v130_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
-        // [재조합 핵심 변수]
-        let bundleEvents = []; let bundleCoords = null; let bundleAddr = "";
+        // [재조합 별도 엔진용 변수]
+        let stampEventsMemo = []; let stampCoordsMemo = null; let stampAddrMemo = "";
         let isStampActive = false;
 
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
@@ -129,15 +123,15 @@
             } catch (e) { defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" }; }
         }
 
-        // [국장님 솔루션 1] 복사 시: 일정과 장소 좌표만 메모리에 보관
+        // [국장님 전용 로직] COPY: 일정과 좌표만 별도 메모리에 보관
         function activatePasteMode() {
             const { data } = getStore();
             const curData = data[currentDay];
             if (!curData || curData.events.length === 0) return alert("복사할 내용이 없습니다.");
             
-            bundleEvents = JSON.parse(JSON.stringify(curData.events));
-            bundleCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
-            bundleAddr = curData.weather?.addr || "";
+            stampEventsMemo = JSON.parse(JSON.stringify(curData.events));
+            stampCoordsMemo = curData.weather?.coords ? { ...curData.weather.coords } : null;
+            stampAddrMemo = curData.weather?.addr || "";
 
             isStampActive = true;
             document.body.classList.add('paste-mode-active');
@@ -153,52 +147,52 @@
 
         window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampActive) deactivatePasteMode(); });
 
+        // [국장님 전용 로직] CLICK: 날짜별 독립적 재조합 엔진 가동
         function handleDayClick(d) {
-            if (isStampActive) executeRebundlePaste(d);
-            else openModal(d);
+            if (isStampActive) {
+                executeSeparatePasteLogic(d); // 별도의 페이스트 로직 호출
+            } else {
+                openModal(d); // 평소엔 모달 열기
+            }
         }
 
-        // [국장님 솔루션 2] 클릭 시: 날짜 확정 -> 데이터 재조합 -> 해당 날짜 날씨 연동
-        async function executeRebundlePaste(targetDay) {
+        // [핵심: 별도의 페이스트 로직]
+        async function executeSeparatePasteLogic(targetDay) {
             const { key, data } = getStore();
             
-            // 1. 해당 날짜 데이터 완전 초기화 (과거 날씨 잔상 파괴)
-            data[targetDay] = {
-                events: JSON.parse(JSON.stringify(bundleEvents)),
-                weather: {
-                    coords: bundleCoords,
-                    addr: bundleAddr
-                }
-            };
+            // 1. 클릭된 날짜 확인 후 데이터 초기화 (기존 날씨 완전 배제)
+            if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
+            data[targetDay].events = JSON.parse(JSON.stringify(stampEventsMemo));
+            data[targetDay].weather = { coords: stampCoordsMemo, addr: stampAddrMemo };
 
-            // 2. 일단 화면에 일정 먼저 표출
+            // 2. 일단 화면에 일정 먼저 그려넣음
             localStorage.setItem(key, JSON.stringify(data));
             renderCalendar();
 
-            // 3. [재조합 핵심] 좌표가 있다면 '그 날짜'에 맞는 신규 날씨 즉시 가져오기
-            if (bundleCoords) {
-                const lat = bundleCoords.lat; const lng = bundleCoords.lng;
+            // 3. 별도의 날씨 연동 로직 (타겟 날짜용 API 호출)
+            if (stampCoordsMemo) {
+                const { lat, lng } = stampCoordsMemo;
                 try {
                     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
-                    const wData = await res.json();
+                    const w = await res.json();
                     
-                    // 신규 날씨로 재조합 완성
+                    // 4. 받아온 신선한 날씨로 '날씨 부분만' 교체 결합
                     data[targetDay].weather = {
-                        coords: bundleCoords, addr: bundleAddr,
-                        temp: Math.round(wData.current_weather.temperature) + "°C",
-                        min: Math.round(wData.daily.temperature_2m_min[0]) + "°",
-                        max: Math.round(wData.daily.temperature_2m_max[0]) + "°",
-                        pop: wData.daily.precipitation_probability_max[0],
-                        icon: weatherMap[wData.current_weather.weathercode] || "☀️",
-                        wind: wData.current_weather.windspeed > 15 ? "강풍" : "미풍",
-                        dust: wData.current_weather.windspeed > 10 ? "보통" : "좋음",
-                        dustClass: wData.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
+                        coords: { lat, lng }, addr: stampAddrMemo,
+                        temp: Math.round(w.current_weather.temperature) + "°C",
+                        min: Math.round(w.daily.temperature_2m_min[0]) + "°",
+                        max: Math.round(w.daily.temperature_2m_max[0]) + "°",
+                        pop: w.daily.precipitation_probability_max[0],
+                        icon: weatherMap[w.current_weather.weathercode] || "☀️",
+                        wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍",
+                        dust: w.current_weather.windspeed > 10 ? "보통" : "좋음",
+                        dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
                     };
                     
-                    // 4. 최종 결과물 저장 및 렌더링
+                    // 5. 최종 데이터 업뎃 및 화면 뿌리기
                     localStorage.setItem(key, JSON.stringify(data));
                     renderCalendar();
-                } catch(e) { console.log("Weather Update Failed"); }
+                } catch(e) { console.log("별도 날씨 연동 실패"); }
             }
         }
 
@@ -238,7 +232,7 @@
             directionsBtn.disabled = !(w && w.coords);
         }
 
-        // 지도로직 및 기본운영 동일 (생략 없이 안전하게 보존)
+        // 지도로직 및 운영 로직 유지
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; tempWeather = dayCoords ? data[currentDay].weather : (defaultWeather || {}); document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
         async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
