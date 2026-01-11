@@ -14,6 +14,7 @@
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
+        /* 헤더 및 상태 안내 */
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; position: relative; }
         #copy-status-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FF9500; color: #000; font-weight: 900; align-items: center; justify-content: center; z-index: 100; font-size: 0.95rem; cursor: pointer; }
         
@@ -27,9 +28,9 @@
         .cal-day:active { background: #1a1a1a; }
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
         
-        /* [커서 보정] 복주머니+PASTE 스탬프 커서 */
+        /* [핵심] 복사 모드 시 마우스 커서 정의 */
         .paste-mode-active { 
-            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>💰</text><rect y='35' width='50' height='16' rx='4' fill='orange'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><text y='20' font-size='20'>💰</text><rect y='25' width='45' height='15' rx='4' fill='orange'/><text x='5' y='36' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
         }
         .paste-mode-active .cal-day:not(.prev-month):not(.next-month) { border: 1px dashed #FF9500; }
 
@@ -58,7 +59,7 @@
 <body id="main-body">
 
     <div class="header-container">
-        <div id="copy-status-bar" onclick="cancelPasteMode()">[스탬프 모드] 날짜를 찍으세요. (종료: ESC 또는 여기 클릭)</div>
+        <div id="copy-status-bar" onclick="cancelPasteMode()">[복사됨] 달력을 클릭해 붙여넣으세요. (종료: ESC 또는 여기 클릭)</div>
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
@@ -77,7 +78,7 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
-                    <button class="m-btn" style="color:#FF9500; height:32px; margin-top:4px; font-size:0.75rem;" onclick="activateStampMode()">COPY ALL DAY (STAMP)</button>
+                    <button id="copy-day-btn" class="m-btn" style="color:#FF9500; height:32px; margin-top:4px; font-size:0.75rem;" onclick="activateStampMode()">COPY ALL DAY (STAMP)</button>
                 </div>
                 <div class="function-btns">
                     <button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
@@ -97,11 +98,12 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v88_'; 
+        const storageKeyPrefix = 'smart_v87_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
+        // [복사 모드 관련 변수]
         let clipboardBundle = null; 
         let isStampMode = false;
 
@@ -122,14 +124,14 @@
             } catch (e) { defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" }; }
         }
 
-        // [보정] 복사 시 날씨 결과값은 싹 비우고 좌표만 챙김
+        // [국장님 제안 핵심 로직: 스탬프 모드 활성화]
         function activateStampMode() {
             const { data } = getStore();
             const cur = data[currentDay];
-            if (!cur || cur.events.length === 0) return alert("복사할 일정이 없습니다.");
+            if (!cur || (cur.events.length === 0 && !cur.weather?.coords)) return alert("복사할 내용이 없습니다.");
             
             clipboardBundle = {
-                events: JSON.parse(JSON.stringify(cur.events)),
+                events: JSON.parse(JSON.stringify(cur.events || [])),
                 coords: cur.weather?.coords ? { ...cur.weather.coords } : null,
                 addr: cur.weather?.addr || ""
             };
@@ -140,6 +142,7 @@
             closeModal();
         }
 
+        // 복사 모드 취소
         function cancelPasteMode() {
             isStampMode = false;
             clipboardBundle = null;
@@ -147,50 +150,49 @@
             document.getElementById('copy-status-bar').style.display = 'none';
         }
 
-        window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) cancelPasteMode(); });
+        // ESC 키 감지하여 취소
+        window.addEventListener('keydown', (e) => {
+            if (e.key === "Escape" && isStampMode) cancelPasteMode();
+        });
 
+        // 달력 날짜 클릭 시 분기
         function handleDayClick(d) {
-            if (isStampMode) executeStampPaste(d);
-            else openModal(d);
+            if (isStampMode) {
+                executeStampPaste(d);
+            } else {
+                openModal(d);
+            }
         }
 
-        // [핵심 보정] 붙여넣기 시 날씨 데이터 완전 초기화 후 새로고침
+        // [핵심] 스탬프 찍기: 일정 복제 + 새로운 날씨 가져오기
         async function executeStampPaste(targetDay) {
             if (!clipboardBundle) return;
             const { key, data } = getStore();
             if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
 
-            // 1. 일정 복제 (기존꺼 지우고 덮어쓰기 - 국장님 스타일)
-            data[targetDay].events = JSON.parse(JSON.stringify(clipboardBundle.events));
-            
-            // 2. [날씨 데이터 삭제] 기존 정보 싹 지우고 좌표만 주입
-            data[targetDay].weather = { 
-                coords: clipboardBundle.coords, 
-                addr: clipboardBundle.addr 
-            };
+            // 일정 덮어쓰기 및 날씨 초기화
+            data[targetDay].events = [...data[targetDay].events, ...clipboardBundle.events];
+            data[targetDay].weather = {};
 
-            // 3. 붙여넣는 날짜의 실시간 날씨 즉시 수신
             if (clipboardBundle.coords) {
                 const lat = clipboardBundle.coords.lat;
                 const lng = clipboardBundle.coords.lng;
                 try {
                     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
                     const wData = await res.json();
-                    const daily = wData.daily; const cur = wData.current_weather;
-                    
-                    // 새 날씨로 갱신
+                    const daily = wData.daily; const curWeather = wData.current_weather;
                     data[targetDay].weather = {
                         coords: { lat, lng }, addr: clipboardBundle.addr,
-                        temp: Math.round(cur.temperature) + "°C",
+                        temp: Math.round(curWeather.temperature) + "°C",
                         min: Math.round(daily.temperature_2m_min[0]) + "°",
                         max: Math.round(daily.temperature_2m_max[0]) + "°",
                         pop: daily.precipitation_probability_max[0],
-                        icon: weatherMap[cur.weathercode] || "☀️",
-                        wind: cur.windspeed > 15 ? "강풍" : "미풍",
-                        dust: cur.windspeed > 10 ? "보통" : "좋음",
-                        dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good"
+                        icon: weatherMap[curWeather.weathercode] || "☀️",
+                        wind: curWeather.windspeed > 15 ? "강풍" : "미풍",
+                        dust: curWeather.windspeed > 10 ? "보통" : "좋음",
+                        dustClass: curWeather.windspeed > 10 ? "dust-normal" : "dust-good"
                     };
-                } catch(e) { console.log("Weather Fetch Failed"); }
+                } catch(e) { data[targetDay].weather = { coords: { lat, lng }, addr: clipboardBundle.addr }; }
             }
 
             localStorage.setItem(key, JSON.stringify(data));
