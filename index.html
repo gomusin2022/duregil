@@ -88,7 +88,7 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v62_'; 
+        const storageKeyPrefix = 'smart_v63_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -165,6 +165,7 @@
         
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
+        // [수정] 입력창 날씨버튼 레이아웃: 1행 아이콘+강수확률, 2행 최저/최고기온
         function refreshModalUI() { 
             const { data } = getStore(); 
             const directionsBtn = document.getElementById('directions-btn'); 
@@ -173,10 +174,11 @@
             const wBtnL2 = document.getElementById('w-btn-l2');
             const w = data[currentDay]?.weather;
 
-            const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️"});
+            const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
 
-            wBtnL1.innerHTML = `${targetW.icon} ${targetW.temp}`; 
+            // [보정] 국장님 요청대로 1행에 아이콘 옆 강수확률 표시
+            wBtnL1.innerHTML = `${targetW.icon} ${targetW.pop}%`; 
             wBtnL2.innerHTML = `${targetW.min}/${targetW.max}`; 
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
             
@@ -187,8 +189,6 @@
             document.getElementById('map-overlay').style.display = 'flex'; 
             const { data } = getStore(); 
             const dayCoords = data[currentDay]?.weather?.coords; 
-            
-            // [보정] 기존 데이터가 있으면 기존 위치, 없으면 최종 기억 위치 사용
             const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; 
             const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; 
             
@@ -201,11 +201,10 @@
             if (marker) map.removeLayer(marker); 
             marker = L.marker([targetLat, targetLng]).addTo(map); 
             
-            // [핵심] 열 때마다 현재 마커 위치를 temp에 미리 저장해둠 (클릭 안 하고 확정할 수도 있으므로)
             tempCoords = { lat: targetLat, lng: targetLng };
-            tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr;
+            tempAddr = dayCoords ? data[currentDay].weather.addr : "서울특별시 강남구";
 
-            document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : "최근 설정 위치"); 
+            document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : "서울특별시 강남구"); 
             setTimeout(() => map.invalidateSize(), 200); 
         }
         
@@ -213,16 +212,10 @@
             const lat = e.latlng.lat, lng = e.latlng.lng; 
             if (marker) map.removeLayer(marker); 
             marker = L.marker([lat, lng]).addTo(map); 
-            
-            // [핵심] 지도를 클릭하는 순간 tempCoords와 tempWeather를 초기화하고 새로 받음
             tempCoords = { lat, lng }; 
-            tempWeather = {}; // 기존 데이터 회귀 방지 위해 비움
-            
+            tempWeather = {}; 
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json()).then(data => { 
-                    tempAddr = data.display_name; 
-                    document.getElementById('addr-display').innerText = "🏠 " + tempAddr; 
-                }); 
+                .then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); 
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
                 .then(res => res.json()).then(data => { 
                     const daily = data.daily; const cur = data.current_weather; 
@@ -232,21 +225,14 @@
         }
 
         async function confirmMapLocation() { 
-            // [보정] 데이터 수신 중 확인
             if(!tempCoords || !tempWeather.temp) return alert("날씨 데이터를 불러오는 중입니다. 잠시만 기다려주세요."); 
-            
             globalLastCoords = tempCoords; 
             globalLastAddr = formatAddress(tempAddr) || globalLastAddr; 
-            
             localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr}));
-            
             const { key, data } = getStore(); 
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; 
-            
-            // [핵심] 기존 데이터를 완전히 덮어쓰기
             data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; 
             localStorage.setItem(key, JSON.stringify(data)); 
-            
             await fetchLastLocationWeather(); 
             document.getElementById('map-overlay').style.display = 'none'; 
             renderCalendar(); resetToInputMode(); 
