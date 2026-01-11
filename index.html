@@ -30,18 +30,20 @@
         .w-loc-inline { color: var(--location-color); font-size: 0.95rem; font-weight: 900; margin-right: 8px; opacity: 0.9; text-shadow: 1px 1px 2px #000; }
         .dust-good { color: #00FF00; } .dust-normal { color: #FFFFE0; } .dust-bad { color: #FF9500; }    
 
-        /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         
-        /* [수정] 모달 타이틀바 레이아웃: 날짜(좌) + 날씨(우) */
+        /* 모달 타이틀바 정렬 */
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         #modal-date-title { color: #fff; margin: 0; font-size: 1.1rem; font-weight: 800; }
-        #modal-weather-info { display: flex; align-items: center; gap: 8px; color: var(--accent-blue); font-weight: 900; font-size: 1rem; }
-        .modal-loc-badge { color: var(--location-color); font-size: 0.85rem; background: #222; padding: 2px 8px; border-radius: 4px; }
+        
+        /* [수정] 타이틀바 우측 정보: 강수확률 및 최저/최고기온 추가 */
+        #modal-weather-info { display: flex; align-items: center; gap: 6px; color: var(--accent-blue); font-weight: 900; font-size: 0.95rem; }
+        .modal-loc-badge { color: var(--location-color); font-size: 0.8rem; background: #222; padding: 2px 6px; border-radius: 4px; border: 1px solid #444; }
+        .modal-temp-range { color: #fff; font-size: 0.9rem; letter-spacing: -0.5px; margin-left: 2px; }
 
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
+        .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
         #weather-btn { color: #FFFFFF; } #loc-set-btn { color: var(--location-color); } #directions-btn { color: var(--accent-blue); } 
         .m-btn { background: var(--metal-gradient); color: white; height: 48px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
@@ -127,7 +129,7 @@
                 const daily = data.daily; const cur = data.current_weather;
                 defaultWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" };
             } catch (e) {
-                defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" };
+                defaultWeather = { temp: "--°C", min: "--", max: "--", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" };
             }
         }
 
@@ -171,7 +173,7 @@
         
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
-        // [수정] 입력창 날씨 버튼과 더불어 '타이틀바 우측 날씨' 업데이트 로직 추가
+        // [수정] 타이틀바 우측 날씨 정보 풀패키지 업데이트
         function refreshModalUI() { 
             const { data } = getStore(); 
             const directionsBtn = document.getElementById('directions-btn'); 
@@ -184,18 +186,22 @@
             const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
 
-            // 1. 우측 버튼 업데이트 (중복 방지를 위해 기온과 확률 분리)
+            // 1. 우측 버튼 (1행 아이콘+확률, 2행 최저/최고)
             wBtnL1.innerHTML = `${targetW.icon} ${targetW.pop}%`; 
             wBtnL2.innerHTML = `${targetW.min}/${targetW.max}`; 
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
             
-            // 2. [추가] 타이틀바 우측 날씨 업데이트
-            modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span> <span>${targetW.icon}</span> <span>${targetW.temp}</span>`;
+            // 2. 타이틀바 우측 정보 (장소 + 아이콘 + 강수 + 기온범위)
+            modalWeatherBox.innerHTML = `
+                <span class="modal-loc-badge">${targetAddr}</span>
+                <span>${targetW.icon}</span>
+                <span>${targetW.pop}%</span>
+                <span class="modal-temp-range">${targetW.min}/${targetW.max}</span>
+            `;
 
             directionsBtn.disabled = !(w && w.coords);
         }
 
-        // 지도로직 및 데이터 저장 로직 동일 (V63 유지)
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : "서울특별시 강남구"; document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : "서울특별시 강남구"); setTimeout(() => map.invalidateSize(), 200); }
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
         async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 데이터를 불러오는 중입니다. 잠시만 기다려주세요."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
