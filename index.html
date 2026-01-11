@@ -26,14 +26,14 @@
         
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
-        /* [수정] 지역명 위치 설정: 날씨 2번째 줄 높이 정렬 및 여백 중앙 배치 */
+        /* [수정] 지역명 위치: 날씨 2번째 줄(아이콘 라인) 높이 정렬 */
         .day-location-center {
             position: absolute; 
-            bottom: 31px; /* 날씨 2번째 줄(아이콘 라인) 높이와 맞춤 */
-            left: 45%; /* 날씨 영역을 제외한 왼쪽 여백의 중앙 */
+            bottom: 33px; /* 3번째 줄(먼지)보다 위인 2번째 줄 높이로 고정 */
+            left: 45%; 
             transform: translateX(-50%);
             color: var(--location-color); 
-            font-size: 0.95rem; 
+            font-size: 1rem; 
             font-weight: 900;
             width: 75%; 
             text-align: center; 
@@ -43,11 +43,11 @@
             z-index: 1; 
             pointer-events: none; 
             opacity: 0.9;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); /* 가독성을 위한 그림자 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,1);
         }
 
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
-        .w-line { white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } /* 라인 높이 명시적 고정 */
+        .w-line { white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } 
         .w-temp { color: #fff; letter-spacing: -1px; }
         .w-icon-pop { color: var(--accent-blue); display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
         .w-extra { font-size: 0.95rem; font-weight: 800; letter-spacing: -1px; }
@@ -61,7 +61,6 @@
         #weather-btn { color: #FFFFFF; }      
         #loc-set-btn { color: var(--location-color); } 
         #directions-btn { color: var(--accent-blue); } 
-        #directions-btn:disabled { opacity: 0.2; }
 
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 48px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; }
@@ -110,7 +109,7 @@
 
     <div id="map-overlay">
         <div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;">
-            <div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">지도를 클릭하여 장소를 선택하세요.</div></div>
+            <div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div>
             <div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div>
         </div>
         <div id="map-container"></div>
@@ -121,31 +120,40 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v47_'; 
+        const storageKeyPrefix = 'smart_v48_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
-        
         let globalLastCoords = { lat: 37.5665, lng: 126.9780 }; 
         let globalLastAddr = "서울";
-
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
 
-        function getStore() {
-            const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1);
-            return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
-        }
+        function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
 
+        // [수정] 주소 가공 엔진: 가장 큰 단위를 우선 탐색 (구 > 군 > 읍 > 면 > 리)
         function formatAddress(fullAddr) {
             if(!fullAddr) return "";
-            let cleanAddr = fullAddr.replace(/대한민국|South Korea|\d{5}/g, '').trim();
-            const parts = cleanAddr.split(/[\s,]+/).reverse(); 
-            for (let part of parts) {
-                if (part.endsWith('동') || part.endsWith('면') || part.endsWith('읍') || part.endsWith('리')) return part;
-                if (part.endsWith('구') || part.endsWith('군')) return part;
-                if (part.endsWith('시') && !part.includes('특별') && !part.includes('광역')) return part;
-            }
-            return parts[0];
+            // 불필요한 국가명 제거 및 조각내기
+            const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 0);
+            
+            // 1순위: '구' (도시 지역의 가장 큰 실효 단위)
+            const gu = parts.find(p => p.endsWith('구'));
+            if(gu) return gu;
+
+            // 2순위: '군' (지방 지역의 가장 큰 단위)
+            const gun = parts.find(p => p.endsWith('군'));
+            if(gun) return gun;
+
+            // 3순위: 읍, 면, 리 (시골 및 상세 지명)
+            const eub = parts.find(p => p.endsWith('읍')); if(eub) return eub;
+            const myeon = parts.find(p => p.endsWith('면')); if(myeon) return myeon;
+            const ri = parts.find(p => p.endsWith('리')); if(ri) return ri;
+
+            // 4순위: 동 (읍면동 중 동)
+            const dong = parts.find(p => p.endsWith('동')); if(dong) return dong;
+
+            // 시(City) 단위는 너무 크므로 무조건 제외하고, 위 조건에 안 걸리면 마지막 상세 지명이라도 반환
+            return parts[parts.length - 1];
         }
 
         function renderCalendar() {
@@ -153,7 +161,6 @@
             const container = document.getElementById('main-calendar');
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
-            
             let html = '';
             ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
             
@@ -161,8 +168,7 @@
             const lastDate = new Date(year, month + 1, 0).getDate();
             const lastDay = new Date(year, month + 1, 0).getDay();
             const prevLastDate = new Date(year, month, 0).getDate();
-
-            for(let i = firstDay - 1; i >= 0; i--) { html += `<div class="cal-day prev-month"><div class="day-num">${prevLastDate - i}</div></div>`; }
+            for(let i = firstDay - 1; i >= 0; i--) html += `<div class="cal-day prev-month"><div class="day-num">${prevLastDate - i}</div></div>`;
 
             for(let d = 1; d <= lastDate; d++) {
                 const dData = data[d] || { events: [], weather: {} };
@@ -172,175 +178,30 @@
                 let locName = dData.weather?.addr ? formatAddress(dData.weather.addr) : "";
                 let locHtml = locName ? `<div class="day-location-center">${locName}</div>` : "";
 
-                html += `<div class="cal-day" onclick="openModal(${d})">
-                            <div class="day-num">${d}</div>
-                            ${locHtml}
-                            ${wHtml}
-                            <div class="time-bar">${barHtml}</div>
-                         </div>`;
+                html += `<div class="cal-day" onclick="openModal(${d})"><div class="day-num">${d}</div>${locHtml}${wHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
-
             const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
-            if(remaining > 0) { for(let d = 1; d <= remaining; d++) { html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`; } }
+            if(remaining > 0) { for(let d = 1; d <= remaining; d++) html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`; }
             container.innerHTML = html;
             const totalCells = firstDay + lastDate + remaining;
             container.style.gridTemplateRows = `35px repeat(${totalCells / 7}, 1fr)`;
         }
 
-        window.openModal = function(d) { 
-            currentDay = d; 
-            const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()];
-            document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; 
-            document.getElementById('input-modal').style.display = 'flex'; 
-            resetToInputMode();
-        };
-
-        function resetToInputMode() {
-            currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1;
-            document.getElementById('ev-name').value = '';
-            refreshModalUI(); initPalette(); initTime(); updateBtnUI(); 
-        }
-
-        function refreshModalUI() {
-            const { data } = getStore();
-            const directionsBtn = document.getElementById('directions-btn');
-            const locBtn = document.getElementById('loc-set-btn');
-
-            if(data[currentDay]?.weather?.coords) {
-                directionsBtn.disabled = false;
-                document.getElementById('w-btn-l1').innerHTML = `${data[currentDay].weather.icon} ${data[currentDay].weather.temp}`;
-                document.getElementById('w-btn-l2').innerHTML = `${data[currentDay].weather.min}/${data[currentDay].weather.max}`;
-                locBtn.innerHTML = `${formatAddress(data[currentDay].weather.addr)}<br>SET`;
-            } else {
-                directionsBtn.disabled = true;
-                document.getElementById('w-btn-l1').innerText = "WEATHER"; document.getElementById('w-btn-l2').innerText = "INFO";
-                locBtn.innerHTML = "LOCATION<br>SET";
-            }
-        }
-
-        function openMap() {
-            document.getElementById('map-overlay').style.display = 'flex';
-            const { data } = getStore();
-            const dayCoords = data[currentDay]?.weather?.coords;
-            const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat;
-            const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng;
-            if (!map) {
-                map = L.map('map-container').setView([targetLat, targetLng], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                map.on('click', onMapClick);
-            } else { map.setView([targetLat, targetLng], 13); }
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([targetLat, targetLng]).addTo(map);
-            tempCoords = { lat: targetLat, lng: targetLng };
-            document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr);
-            setTimeout(() => map.invalidateSize(), 200);
-        }
-
-        function onMapClick(e) {
-            const lat = e.latlng.lat, lng = e.latlng.lng;
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lng]).addTo(map);
-            tempCoords = { lat, lng };
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; });
-            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
-                .then(res => res.json()).then(data => {
-                    const daily = data.daily; const cur = data.current_weather;
-                    tempWeather = {
-                        temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°",
-                        pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍",
-                        dust: cur.windspeed > 20 ? "나쁨" : cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 20 ? "dust-bad" : cur.windspeed > 10 ? "dust-normal" : "dust-good"
-                    };
-                    document.getElementById('temp-display').innerText = tempWeather.temp;
-                });
-        }
-
-        function confirmMapLocation() {
-            if(!tempCoords) return alert("Select location.");
-            globalLastCoords = tempCoords; globalLastAddr = tempAddr || globalLastAddr;
-            const { key, data } = getStore();
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr };
-            localStorage.setItem(key, JSON.stringify(data));
-            document.getElementById('map-overlay').style.display = 'none';
-            renderCalendar(); resetToInputMode();
-        }
-
+        window.openModal = function(d) { currentDay = d; const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; document.getElementById('input-modal').style.display = 'flex'; resetToInputMode(); };
+        function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
+        function refreshModalUI() { const { data } = getStore(); const directionsBtn = document.getElementById('directions-btn'); const locBtn = document.getElementById('loc-set-btn'); if(data[currentDay]?.weather?.coords) { directionsBtn.disabled = false; document.getElementById('w-btn-l1').innerHTML = `${data[currentDay].weather.icon} ${data[currentDay].weather.temp}`; document.getElementById('w-btn-l2').innerHTML = `${data[currentDay].weather.min}/${data[currentDay].weather.max}`; locBtn.innerHTML = `${formatAddress(data[currentDay].weather.addr)}<br>SET`; } else { directionsBtn.disabled = true; document.getElementById('w-btn-l1').innerText = "WEATHER"; document.getElementById('w-btn-l2').innerText = "INFO"; locBtn.innerHTML = "LOCATION<br>SET"; } }
+        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
+        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 20 ? "나쁨" : cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 20 ? "dust-bad" : cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
+        function confirmMapLocation() { if(!tempCoords) return alert("Select location."); globalLastCoords = tempCoords; globalLastAddr = tempAddr || globalLastAddr; const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; resetToInputMode(); }
-
-        function handleModeBtn(mode) {
-            if (currentMode === mode) {
-                if (mode === 'add' && startSlot !== null) saveData();
-                else if (mode === 'edit' && editingIdx !== -1) saveData();
-                else if (mode === 'del' && editingIdx !== -1) deleteData();
-                return;
-            }
-            currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; 
-            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); 
-        }
-
-        function updateBtnUI() {
-            const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del');
-            [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; });
-            if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } }
-            else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } }
-            else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } }
-        }
-
-        function initTime() {
-            const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || [];
-            for(let i=0; i<12; i++) {
-                const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer';
-                const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
-                const isEditingThis = (fIdx !== -1 && fIdx === editingIdx);
-                if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; }
-                b.onclick = () => {
-                    if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } }
-                    if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; }
-                    updateTimeUI(); updateBtnUI();
-                };
-                t.appendChild(b);
-            }
-        }
-
-        function updateTimeUI() {
-            const btns = document.querySelectorAll('#time-picker div');
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } });
-        }
-
-        function initPalette() {
-            const p = document.getElementById('color-palette'); p.innerHTML = '';
-            ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer';
-                d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333";
-                d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d);
-            });
-        }
-
-        function saveData() {
-            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required.");
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
-            const { key, data } = getStore();
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
-            const ev = { name, start: s, end: e, color: selectedColor };
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
-            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; }
-            updateBtnUI(); initTime();
-        }
-
-        function deleteData() {
-            const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1);
-            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
-        }
-
-        function goDirections() {
-            const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || "서울";
-            if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); resetToInputMode(); }
-        }
-
+        function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
+        function updateBtnUI() { const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; }); if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } } else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } } else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } } }
+        function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
+        function updateTimeUI() { const btns = document.querySelectorAll('#time-picker div'); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } }); }
+        function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
+        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; } updateBtnUI(); initTime(); }
+        function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
+        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || "서울"; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); resetToInputMode(); } }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
         window.onload = renderCalendar;
