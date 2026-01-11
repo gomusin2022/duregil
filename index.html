@@ -66,15 +66,10 @@
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
-        /* [복구] 강조 버튼용 애니메이션 및 상태 스타일 */
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--danger-red) !important; color: #fff !important; animation: blink 0.8s infinite; }
 
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
@@ -96,17 +91,6 @@
     </div>
 
     <div class="calendar-container" id="calendar-box"><div id="main-calendar" class="cal-grid"></div></div>
-
-    <div id="ai-modal" class="ai-modal">
-        <div class="ai-content">
-            <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서</h3>
-            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 피아노레슨 오전10시부터 오후1시까지"></textarea>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
-                <button class="m-btn" onclick="closeAI()">닫기</button>
-            </div>
-        </div>
-    </div>
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
@@ -138,13 +122,10 @@
         </div>
     </div>
 
-    <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
-
     <script>
         const storageKeyPrefix = 'smart_v3500_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
-        let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false;
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
@@ -152,7 +133,7 @@
         let defaultWeather = null;
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
-        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } const dong = parts.find(p => p.endsWith('동')); if(dong) return dong; return parts[parts.length - 1] || ""; }
+        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } return parts[parts.length - 1] || ""; }
 
         async function fetchLastLocationWeather() {
             try {
@@ -163,93 +144,6 @@
                 const topW = document.getElementById('top-weather-display');
                 topW.innerHTML = `<div class="top-w-item" style="color:var(--location-color)">📍${formatAddress(globalLastAddr)}</div><div class="top-w-item">${defaultWeather.icon} ${defaultWeather.temp}</div>`;
             } catch (e) {}
-        }
-
-        async function processAICommand() {
-            const cmd = document.getElementById('ai-command').value;
-            if(!cmd) return;
-            const days = {"일":0, "월":1, "화":2, "수":3, "목":4, "금":5, "토":6};
-            let targetDayNum = -1;
-            for(let key in days) { if(cmd.includes(key)) targetDayNum = days[key]; }
-            function parseSmartHour(text) {
-                const match = text.match(/(\d+)시/);
-                if(!match) return null;
-                let h = parseInt(match[1]);
-                if(text.includes("오후") && h < 12) h += 12;
-                if(text.includes("오전") && h === 12) h = 0;
-                return h;
-            }
-            let startH = 10, endH = 13;
-            const parts = cmd.split("부터");
-            if(parts.length > 1) {
-                startH = parseSmartHour(parts[0]) || 10;
-                endH = parseSmartHour(parts[1]) || (startH + 2);
-            }
-            const sIdx = Math.max(0, Math.min(11, startH - 6));
-            const eIdx = Math.max(0, Math.min(11, endH - 1 - 6));
-            if(targetDayNum !== -1 && cmd.includes("매주")) {
-                const { key, data } = getStore();
-                const lastDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
-                const eventName = cmd.split("요일")[1]?.replace(/오전|오후|부터|까지|\d+시/g, "").trim() || "AI 일정";
-                let promises = [];
-                for(let d=1; d<=lastDate; d++) {
-                    const currentD = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
-                    if(currentD.getDay() === targetDayNum) {
-                        if(!data[d]) data[d] = { events: [], weather: {} };
-                        data[d].events.push({ name: eventName, start: sIdx, end: eIdx, color: "#AF52DE" });
-                        const targetFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                        const fetchTask = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${globalLastCoords.lat}&longitude=${globalLastCoords.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`)
-                        .then(res => res.json()).then(w => {
-                            data[d].weather = { coords: globalLastCoords, addr: globalLastAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good" };
-                            localStorage.setItem(key, JSON.stringify(data));
-                            renderCalendar();
-                        });
-                    }
-                }
-                await Promise.all(promises);
-                localStorage.setItem(key, JSON.stringify(data));
-                renderCalendar();
-                closeAI();
-            }
-        }
-
-        function openAI() { closeModal(); document.getElementById('ai-modal').style.display = 'flex'; }
-        function closeAI() { document.getElementById('ai-modal').style.display = 'none'; }
-        function activateStampMode() {
-            const { data } = getStore();
-            const curData = data[currentDay];
-            if (!curData || curData.events.length === 0) return alert("복사 데이터 없음");
-            memoEvents = JSON.parse(JSON.stringify(curData.events));
-            memoCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
-            memoAddr = curData.weather?.addr || "";
-            isStampMode = true;
-            document.body.classList.add('stamp-mode-active');
-            document.getElementById('copy-status-bar').style.display = 'flex';
-            closeModal();
-        }
-        function deactivateStampMode() { isStampMode = false; document.body.classList.remove('stamp-mode-active'); document.getElementById('copy-status-bar').style.display = 'none'; }
-        window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) deactivateStampMode(); });
-        function handleDayAction(d) { if (isStampMode) executeStampPaste(d); else openModal(d); }
-        async function executeStampPaste(targetDay) {
-            const { key, data } = getStore();
-            if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
-            data[targetDay].events = JSON.parse(JSON.stringify(memoEvents));
-            data[targetDay].weather = { coords: memoCoords, addr: memoAddr };
-            localStorage.setItem(key, JSON.stringify(data));
-            renderCalendar();
-            if (memoCoords) {
-                const { lat, lng } = memoCoords;
-                const targetFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(targetDay).padStart(2,'0')}`;
-                try {
-                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`);
-                    const w = await res.json();
-                    data[targetDay].weather = {
-                        coords: memoCoords, addr: memoAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
-                    };
-                    localStorage.setItem(key, JSON.stringify(data));
-                    renderCalendar(); 
-                } catch(e) {}
-            }
         }
 
         function renderCalendar() {
@@ -265,7 +159,7 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dData.weather || {}; let locName = w.addr ? formatAddress(w.addr) : "";
-                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div></div>` : "";
+                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span></div></div>` : "";
                 html += `<div class="cal-day" onclick="handleDayAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
             const remaining = (new Date(year, month + 1, 0).getDay() === 6) ? 0 : 6 - new Date(year, month + 1, 0).getDay();
@@ -274,6 +168,7 @@
             container.style.gridTemplateRows = `18px repeat(${Math.ceil((firstDay + lastDate + remaining) / 7)}, 1fr)`;
         }
 
+        /* [핵심 수정] 모달 오픈 시 모드는 유지하되 값만 초기화 */
         window.openModal = function(d) { 
             currentDay = d; 
             const { key, data } = getStore();
@@ -285,24 +180,29 @@
             }
             document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d}`; 
             document.getElementById('input-modal').style.display = 'flex'; 
-            resetToInputMode(); 
+            
+            // 작업 초기화 (모드는 유지)
+            clearCurrentSelection();
         };
 
         function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
-        function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
-        function refreshModalUI() { const { data } = getStore(); const locBtn = document.getElementById('loc-set-btn'); const directionsBtn = document.getElementById('directions-btn'); const w = data[currentDay]?.weather; const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0}); const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr; locBtn.innerHTML = `${targetAddr}<br>SET`; const modalWeatherBox = document.getElementById('modal-weather-info'); modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span><span>${targetW.icon}</span><span>${targetW.pop}%</span>`; directionsBtn.disabled = !(w && w.coords); }
-        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; tempWeather = dayCoords ? data[currentDay].weather : (defaultWeather || {}); document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
-        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
-        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
-        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
+        
+        /* [보완] 입력값 및 선택 슬롯만 비우고 모드(EDIT, DEL 등)는 보존하는 함수 */
+        function clearCurrentSelection() {
+            startSlot = null;
+            endSlot = null;
+            editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            initPalette();
+            initTime();
+            updateBtnUI();
+            refreshModalUI();
+        }
 
-        /* [핵심 복구] 버튼 UI 상태 업데이트: SAVE, UPDATE, CONFIRM 문구 및 강조 효과 적용 */
+        function refreshModalUI() { const { data } = getStore(); const w = data[currentDay]?.weather; const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0}); const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr; document.getElementById('modal-weather-info').innerHTML = `<span>${targetAddr}</span> <span>${targetW.icon}</span>`; }
+        
         function updateBtnUI() { 
-            const addBtn = document.getElementById('mode-add'), 
-                  editBtn = document.getElementById('mode-edit'), 
-                  delBtn = document.getElementById('mode-del'); 
-
-            // 초기화
+            const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); 
             [addBtn, editBtn, delBtn].forEach(b => { 
                 b.classList.remove('radio-active', 'confirm-active'); 
                 b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; 
@@ -310,33 +210,89 @@
 
             if (currentMode === 'add') { 
                 addBtn.classList.add('radio-active'); 
-                if (startSlot !== null) { 
-                    addBtn.innerText = "SAVE"; 
-                    addBtn.classList.add('confirm-active'); 
-                } 
+                if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } 
             } else if (currentMode === 'edit') { 
                 editBtn.classList.add('radio-active'); 
-                if (editingIdx !== -1) { 
-                    editBtn.innerText = "UPDATE"; 
-                    editBtn.classList.add('confirm-active'); 
-                } 
+                if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } 
             } else if (currentMode === 'del') { 
                 delBtn.classList.add('radio-active'); 
-                if (editingIdx !== -1) { 
-                    delBtn.innerText = "CONFIRM"; 
-                    delBtn.classList.add('confirm-active'); 
-                } 
+                if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } 
             } 
         }
 
-        function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
-        function updateTimeUI() { const btns = document.querySelectorAll('#time-picker div'); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } }); }
-        function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
-        function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; updateBtnUI(); initTime(); }
-        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; } updateBtnUI(); initTime(); }
-        function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
-        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
+        function initTime() { 
+            const t = document.getElementById('time-picker'); t.innerHTML = ''; 
+            const { data } = getStore(); const evs = data[currentDay]?.events || []; 
+            for(let i=0; i<12; i++) { 
+                const b = document.createElement('div'); b.className = 'time-btn'; 
+                b.innerText = (i+6).toString().padStart(2,'0'); 
+                b.style.cssText = 'background:#1a1a1a; color:#444; text-align:center; padding:10px 0; border:1px solid #252525; border-radius:4px; cursor:pointer; font-size:0.7rem;';
+                
+                const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
+                const isEditingThis = (fIdx !== -1 && fIdx === editingIdx);
+                if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; }
+                
+                b.onclick = () => { 
+                    if(fIdx !== -1 && currentMode !== 'add' && editingIdx === -1) { 
+                        editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; 
+                        selectedColor = e.color; document.getElementById('ev-name').value = e.name;
+                    } else { 
+                        if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; }
+                    }
+                    updateTimeUI(); updateBtnUI(); 
+                }; 
+                t.appendChild(b); 
+            } 
+            updateTimeUI();
+        }
+
+        function updateTimeUI() { 
+            const btns = document.querySelectorAll('.time-btn');
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
+            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            btns.forEach((btn, idx) => {
+                if(startSlot !== null && idx >= s && idx <= e) {
+                    btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff";
+                } else { btn.style.outline = "none"; }
+            });
+        }
+
+        function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#FF9500', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
+        
+        function handleModeBtn(mode) { 
+            if (currentMode === mode) { 
+                if (mode === 'add' && startSlot !== null) saveData(); 
+                else if (mode === 'edit' && editingIdx !== -1) saveData(); 
+                else if (mode === 'del' && editingIdx !== -1) deleteData(); 
+                return; 
+            } 
+            currentMode = mode; 
+            clearCurrentSelection(); // 모드 변경 시 선택값 리셋 (모드 유지됨)
+        }
+        
+        function saveData() { 
+            const name = document.getElementById('ev-name').value; 
+            if(!name || startSlot === null) return alert("내용을 입력하세요."); 
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); 
+            const { key, data } = getStore(); 
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; 
+            const ev = { name, start: s, end: e, color: selectedColor }; 
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); 
+            localStorage.setItem(key, JSON.stringify(data)); 
+            renderCalendar(); 
+            clearCurrentSelection(); // [핵심] 저장 후에도 현재 모드 유지
+        }
+
+        function deleteData() { 
+            const { key, data } = getStore(); 
+            data[currentDay].events.splice(editingIdx, 1); 
+            localStorage.setItem(key, JSON.stringify(data)); 
+            renderCalendar(); 
+            clearCurrentSelection(); // [핵심] 삭제 후에도 현재 모드 유지
+        }
+
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
+        function handleDayAction(d) { openModal(d); }
         window.onload = async () => { await fetchLastLocationWeather(); renderCalendar(); };
     </script>
 </body>
