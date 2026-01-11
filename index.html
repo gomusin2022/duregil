@@ -57,6 +57,9 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 95%; max-width: 460px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
         
+        .ai-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; justify-content: center; align-items: center; }
+        .ai-content { background: #111; width: 90%; max-width: 400px; padding: 20px; border: 2px solid var(--ai-orange); border-radius: 15px; box-shadow: 0 0 30px rgba(255,149,0,0.3); }
+
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.7rem; font-weight: 900; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1; background: var(--metal-gradient); text-shadow: 1px 1px 2px #000; }
         
@@ -89,6 +92,17 @@
 
     <div class="calendar-container" id="calendar-box"><div id="main-calendar" class="cal-grid"></div></div>
 
+    <div id="ai-modal" class="ai-modal">
+        <div class="ai-content">
+            <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서</h3>
+            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 피아노레슨 오전10시부터 오후1시까지"></textarea>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
+                <button class="m-btn" onclick="closeAI()">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <div id="input-modal" class="modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -100,12 +114,13 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
-                    <div style="margin-top: 4px;">
-                        <button class="m-btn" style="width:100%; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL (STAMP)</button>
+                    <div style="margin-top: 4px; display: flex; gap: 4px;">
+                        <button class="m-btn" style="flex: 1; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL</button>
+                        <button class="m-btn" style="flex: 1; color:var(--danger-red); height:32px; font-size:0.75rem; border-color:var(--danger-red);" onclick="clearDayData()">CLEAR DAY</button>
                     </div>
                 </div>
                 <div class="function-btns">
-                    <button class="f-btn" style="color:var(--danger-red) !important;" onclick="clearDayData()">CLEAR<br>DAY</button>
+                    <button class="f-btn" style="color:var(--ai-orange) !important;" onclick="openAI()">AI 비서<br>CMD</button>
                     <button id="loc-set-btn" class="f-btn" onclick="openMap()" style="color:#E0E0E0 !important;">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important;">GET<br>DIR</button>
                 </div>
@@ -133,7 +148,7 @@
         let defaultWeather = null;
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
-        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } return parts[parts.length - 1] || ""; }
+        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } const dong = parts.find(p => p.endsWith('동')); if(dong) return dong; return parts[parts.length - 1] || ""; }
 
         async function fetchLastLocationWeather() {
             try {
@@ -146,7 +161,55 @@
             } catch (e) {}
         }
 
-        /* [추가] 해당 날짜 데이터 완전 초기화 기능 */
+        async function processAICommand() {
+            const cmd = document.getElementById('ai-command').value;
+            if(!cmd) return;
+            const days = {"일":0, "월":1, "화":2, "수":3, "목":4, "금":5, "토":6};
+            let targetDayNum = -1;
+            for(let key in days) { if(cmd.includes(key)) targetDayNum = days[key]; }
+            function parseSmartHour(text) {
+                const match = text.match(/(\d+)시/);
+                if(!match) return null;
+                let h = parseInt(match[1]);
+                if(text.includes("오후") && h < 12) h += 12;
+                if(text.includes("오전") && h === 12) h = 0;
+                return h;
+            }
+            let startH = 10, endH = 13;
+            const parts = cmd.split("부터");
+            if(parts.length > 1) {
+                startH = parseSmartHour(parts[0]) || 10;
+                endH = parseSmartHour(parts[1]) || (startH + 2);
+            }
+            const sIdx = Math.max(0, Math.min(11, startH - 6));
+            const eIdx = Math.max(0, Math.min(11, endH - 1 - 6));
+            if(targetDayNum !== -1 && cmd.includes("매주")) {
+                const { key, data } = getStore();
+                const lastDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+                const eventName = cmd.split("요일")[1]?.replace(/오전|오후|부터|까지|\d+시/g, "").trim() || "AI 일정";
+                for(let d=1; d<=lastDate; d++) {
+                    const currentD = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
+                    if(currentD.getDay() === targetDayNum) {
+                        if(!data[d]) data[d] = { events: [], weather: {} };
+                        data[d].events.push({ name: eventName, start: sIdx, end: eIdx, color: "#AF52DE" });
+                        const targetFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${globalLastCoords.lat}&longitude=${globalLastCoords.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`)
+                        .then(res => res.json()).then(w => {
+                            data[d].weather = { coords: globalLastCoords, addr: globalLastAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good" };
+                            localStorage.setItem(key, JSON.stringify(data));
+                            renderCalendar();
+                        });
+                    }
+                }
+                localStorage.setItem(key, JSON.stringify(data));
+                renderCalendar();
+                closeAI();
+            }
+        }
+
+        function openAI() { closeModal(); document.getElementById('ai-modal').style.display = 'flex'; }
+        function closeAI() { document.getElementById('ai-modal').style.display = 'none'; }
+        
         function clearDayData() {
             if(!confirm("이 날의 모든 일정과 장소 정보를 삭제할까요?")) return;
             const { key, data } = getStore();
