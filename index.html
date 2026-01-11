@@ -34,9 +34,10 @@
 
         .metal-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #444; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; font-size: 0.95rem; }
         
+        /* 국장님 요청대로 버튼 이름 및 스타일 변경 */
         #loc-btn { 
-            background: #e0e0e0; color: #000; font-size: 0.7rem; font-weight: 800; border-radius: 8px; 
-            border: 1px solid #999; transition: 0.2s; cursor: pointer;
+            background: #f8f9fa; color: #000; font-size: 0.65rem; font-weight: 900; border-radius: 8px; 
+            border: 1px solid #999; transition: 0.2s; cursor: pointer; line-height: 1.1;
         }
         #loc-btn:active { background: #bbb; transform: scale(0.95); }
 
@@ -45,13 +46,13 @@
         .del-confirm-active { background: #ff4d4d !important; color: #fff !important; animation: blink 1s infinite; }
         
         @keyframes blink { 50% { opacity: 0.6; } }
-        .time-btn.locked { cursor: default !important; }
-        .time-btn.disabled { opacity: 0.3; cursor: default; }
 
-        /* 지도 레이아웃 추가 */
+        /* 지도 및 날씨 레이아웃 */
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
-        #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; margin-bottom:15px; z-index: 2001; }
-        .weather-panel { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid var(--accent-blue); }
+        #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; z-index: 2001; }
+        .weather-panel { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid var(--accent-blue); display: flex; justify-content: space-between; align-items: center; }
+        .weather-text { color: #fff; font-size: 0.9rem; }
+        .temp-val { color: var(--accent-blue); font-size: 1.4rem; font-weight: 800; }
     </style>
 </head>
 <body>
@@ -76,7 +77,7 @@
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
                 <div class="side-btns" style="display: flex; flex-direction: column; width: 90px; gap: 6px;">
                     <button class="metal-btn" onclick="alert('Syncing...')" style="flex: 2; font-size: 0.7rem; border-radius: 8px;">SYNC DATA</button>
-                    <button id="loc-btn" onclick="openMap()" style="flex: 1;">LOCATION</button>
+                    <button id="loc-btn" onclick="openMap()" style="flex: 1;">LOCATION<br>WEATHER</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
@@ -90,26 +91,24 @@
 
     <div id="map-overlay">
         <div class="weather-panel">
-            <div id="addr-display" style="font-size: 0.9rem; color: #fff; margin-bottom: 5px;">지도를 클릭하여 장소를 선택하세요.</div>
-            <div id="weather-display" style="font-size: 1.1rem; color: var(--accent-blue); font-weight: bold;">날씨 확인 중...</div>
+            <div class="weather-text">
+                <div id="addr-display" style="font-weight: bold; margin-bottom: 3px;">지도를 클릭하세요</div>
+                <div id="weather-desc" style="font-size: 0.8rem; color: #888;">장소를 선택하면 날씨를 연동합니다.</div>
+            </div>
+            <div id="temp-display" class="temp-val">--°C</div>
         </div>
         <div id="map-container"></div>
         <div style="display:flex; gap:10px; margin-top: 15px;">
-            <button onclick="closeMap()" style="flex:1; padding:15px; background:#333; color:white; border:none; border-radius:10px;">취소</button>
-            <button onclick="confirmMapLocation()" style="flex:2; padding:15px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px;">이 장소와 날씨로 확정</button>
+            <button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:10px; font-weight: bold;">CANCEL</button>
+            <button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:bold; border:none; border-radius:10px; font-size:1.1rem;">SET LOCATION & WEATHER</button>
         </div>
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v15_'; 
-        const baseDate = new Date(2026, 0, 1);
+        const storageKeyPrefix = 'smart_v16_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
-        let map, marker;
-        let tempCoords = null;
-        let tempWeather = "";
-
-        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
+        let map, marker, tempCoords = null, tempWeather = "";
 
         function getStore() {
             const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1);
@@ -128,8 +127,8 @@
             for(let d=1; d<=lastDate; d++) {
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
-                const locTag = dData.weather?.location === "SET" ? `<div style="color:var(--accent-blue); font-size:0.6rem; font-weight:bold;">● SET</div>` : "";
-                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between;"><div class="day-num">${d}</div>${locTag}</div><div class="time-bar">${barHtml}</div></div>`;
+                const weatherTag = dData.weather?.info ? `<div style="color:var(--accent-blue); font-size:0.6rem; font-weight:bold;">${dData.weather.info}</div>` : "";
+                html += `<div class="cal-day" onclick="openModal(${d})"><div style="display:flex; justify-content:space-between;"><div class="day-num">${d}</div>${weatherTag}</div><div class="time-bar">${barHtml}</div></div>`;
             }
             container.innerHTML = html;
         }
@@ -141,58 +140,55 @@
             document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; 
             document.getElementById('input-modal').style.display = 'flex'; 
             const { data } = getStore();
-            document.getElementById('loc-btn').innerText = (data[d]?.weather?.location === "SET") ? "V SET" : "LOCATION";
+            document.getElementById('loc-btn').innerHTML = (data[d]?.weather?.location === "SET") ? "V SET<br>" + data[d].weather.info : "LOCATION<br>WEATHER";
             startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
         };
 
-        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-
-        // --- 청정 지도 엔진 (오픈스트리트맵 기반) ---
         function openMap() {
             document.getElementById('map-overlay').style.display = 'flex';
             if (!map) {
                 map = L.map('map-container').setView([37.5665, 126.9780], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                
                 map.on('click', function(e) {
-                    const lat = e.latlng.lat;
-                    const lng = e.latlng.lng;
+                    const lat = e.latlng.lat, lng = e.latlng.lng;
                     if (marker) map.removeLayer(marker);
                     marker = L.marker([lat, lng]).addTo(map);
                     tempCoords = { lat, lng };
 
-                    // 주소 검색 (보안 안전)
+                    // 주소 & 날씨 동시 연동
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
                         .then(res => res.json()).then(data => {
-                            document.getElementById('addr-display').innerText = "🏠 " + (data.display_name.split(',')[0] || "알 수 없는 장소");
+                            document.getElementById('addr-display').innerText = "📍 " + (data.display_name.split(',')[0] || "선택 지역");
                         });
 
-                    // 날씨 연동 (실시간)
                     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
                         .then(res => res.json()).then(data => {
-                            const temp = data.current_weather.temperature;
+                            const temp = Math.round(data.current_weather.temperature);
                             tempWeather = `${temp}°C`;
-                            document.getElementById('weather-display').innerText = `🌡️ 현재 기온: ${temp}°C`;
+                            document.getElementById('temp-display').innerText = tempWeather;
+                            document.getElementById('weather-desc').innerText = "해당 지역의 날씨가 연동되었습니다.";
                         });
                 });
             }
             setTimeout(() => map.invalidateSize(), 200);
         }
 
-        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
-
         function confirmMapLocation() {
-            if(!tempCoords) return alert("지도를 클릭하여 장소를 먼저 선택하세요.");
+            if(!tempCoords) return alert("지도를 클릭하여 장소를 선택하세요.");
             const { key, data } = getStore();
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             data[currentDay].weather = { location: "SET", coords: tempCoords, info: tempWeather };
             localStorage.setItem(key, JSON.stringify(data));
-            document.getElementById('loc-btn').innerText = "V SET";
-            closeMap();
+            document.getElementById('loc-btn').innerHTML = "V SET<br>" + tempWeather;
+            document.getElementById('map-overlay').style.display = 'none';
             renderCalendar();
         }
 
-        // --- 기존 스케줄 관리 로직 (국장님 소스 유지) ---
+        // --- 달력 로직 유지 ---
+        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
+        window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
+        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
+
         function handleModeBtn(mode) {
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
@@ -209,13 +205,9 @@
                 b.classList.remove('radio-active', 'confirm-active', 'del-confirm-active');
                 b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DELETE";
             });
-            if (currentMode === 'add') {
-                addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); }
-            } else if (currentMode === 'edit') {
-                editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); }
-            } else if (currentMode === 'del') {
-                delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('del-confirm-active'); }
-            }
+            if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } }
+            else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } }
+            else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('del-confirm-active'); } }
         }
 
         function initTime() {
@@ -228,7 +220,7 @@
                 const isEditingThis = (foundIdx !== -1 && foundIdx === editingIdx);
                 if(foundIdx !== -1) {
                     b.style.background = isEditingThis ? selectedColor : evs[foundIdx].color; b.style.color = "#000";
-                    if(isEditingThis) { b.style.outline = "2px solid #fff"; b.style.zIndex = "10"; } else b.classList.add('locked');
+                    if(isEditingThis) { b.style.outline = "2px solid #fff"; b.style.zIndex = "10"; }
                 } else if(currentMode !== 'add' && editingIdx === -1) b.classList.add('disabled');
                 b.onclick = () => {
                     if(foundIdx !== -1 && currentMode !== 'add') {
