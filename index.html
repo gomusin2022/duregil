@@ -66,7 +66,7 @@
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
-        /* [강조] 버튼 색상 및 깜빡임 애니메이션 */
+        /* 강조 버튼용 애니메이션 및 상태 스타일 */
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--danger-red) !important; color: #fff !important; animation: blink 0.8s infinite; }
 
@@ -100,7 +100,7 @@
     <div id="ai-modal" class="ai-modal">
         <div class="ai-content">
             <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서</h3>
-            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 피아노레슨 오전10시부터 오후1시까지"></textarea>
+            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 피아노레슨"></textarea>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
                 <button class="m-btn" onclick="closeAI()">닫기</button>
@@ -292,9 +292,13 @@
         async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
 
-        /* [핵심 보정] 버튼 UI 제어: 대상을 정확히 클릭했을 때만 강조 활성화 */
+        /* [핵심 복구] 버튼 UI 상태 업데이트: 일정 블럭 선택 시에만 문구 변경 및 강조 효과 적용 */
         function updateBtnUI() { 
-            const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); 
+            const addBtn = document.getElementById('mode-add'), 
+                  editBtn = document.getElementById('mode-edit'), 
+                  delBtn = document.getElementById('mode-del'); 
+
+            // 초기화
             [addBtn, editBtn, delBtn].forEach(b => { 
                 b.classList.remove('radio-active', 'confirm-active'); 
                 b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; 
@@ -303,22 +307,25 @@
             if (currentMode === 'add') { 
                 addBtn.classList.add('radio-active'); 
                 if (startSlot !== null) { 
-                    addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); 
+                    addBtn.innerText = "SAVE"; 
+                    addBtn.classList.add('confirm-active'); 
                 } 
             } else if (currentMode === 'edit') { 
                 editBtn.classList.add('radio-active'); 
                 if (editingIdx !== -1) { 
-                    editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); 
+                    editBtn.innerText = "UPDATE"; 
+                    editBtn.classList.add('confirm-active'); 
                 } 
             } else if (currentMode === 'del') { 
                 delBtn.classList.add('radio-active'); 
                 if (editingIdx !== -1) { 
-                    delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); 
+                    delBtn.innerText = "CONFIRM"; 
+                    delBtn.classList.add('confirm-active'); 
                 } 
             } 
         }
 
-        /* [핵심 보정] 시간 슬롯 선택 엔진: 수정/삭제 시 블럭 선택 및 범위 수정 기능 통합 */
+        /* [핵심 보정] 블럭 선택 시 즉시 모드 전환 및 강조 활성화 */
         function initTime() { 
             const t = document.getElementById('time-picker'); t.innerHTML = ''; 
             const { data } = getStore(); const evs = data[currentDay]?.events || []; 
@@ -332,12 +339,12 @@
                 if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; }
                 
                 b.onclick = () => { 
-                    if(fIdx !== -1 && currentMode !== 'add' && editingIdx === -1) { 
-                        // [수정/삭제 진입] 이미 등록된 블럭을 처음 클릭했을 때
+                    if(fIdx !== -1 && currentMode !== 'add') { 
+                        // 수정/삭제 모드에서 등록된 블럭 클릭 시
                         editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; 
                         selectedColor = e.color; document.getElementById('ev-name').value = e.name;
                     } else { 
-                        // [추가 모드] 혹은 [수정 모드 중 범위 변경] 빈 칸 클릭 시
+                        // 추가 모드 또는 빈 칸 클릭 시 범위 설정
                         if(startSlot === null || (startSlot !== null && endSlot !== null)) { 
                             startSlot = i; endSlot = null; 
                         } else { 
@@ -364,18 +371,7 @@
 
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#FF9500', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
         function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
-        
-        function saveData() { 
-            const name = document.getElementById('ev-name').value; 
-            if(!name || startSlot === null) return alert("내용을 입력하세요."); 
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); 
-            const { key, data } = getStore(); 
-            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; 
-            const ev = { name, start: s, end: e, color: selectedColor }; 
-            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); 
-            localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); 
-        }
-
+        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
         function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
