@@ -13,45 +13,50 @@
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 헤더 스타일 */
         .header-container { text-align: center; padding: 12px 0; background: linear-gradient(145deg, #1a1a1a, #000000); border-bottom: 1px solid #333; flex-shrink: 0; }
         .header-title { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
         .nav-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin-top: 8px; }
         .nav-btn { background: var(--metal-gradient); color: #fff; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
         
-        /* [중요] 달력 및 일일 칸 레이아웃 복구 */
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
-        .cal-day { background: #0a0a0a; padding: 4px; cursor: pointer; display: flex; flex-direction: column; position: relative; justify-content: flex-start; }
-        .day-num { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        
+        /* [복구] 일일 칸 레이아웃 - 숫자 좌측상단, 날씨 우측정렬 */
+        .cal-day { background: #0a0a0a; padding: 6px; cursor: pointer; display: flex; flex-direction: column; position: relative; }
+        .day-num { font-size: 1.2rem; font-weight: 700; color: #fff; position: absolute; top: 6px; left: 8px; }
 
-        /* [복구] 날씨 3줄 배지 스타일 */
+        /* [복구] 어제 그 큼직한 3줄 날씨 스타일 */
         .weather-badge-main { 
-            font-size: 0.58rem; line-height: 1.3; background: rgba(0, 112, 255, 0.08); 
-            border-radius: 4px; padding: 3px; margin-top: auto; margin-bottom: 4px;
-            border: 1px solid rgba(0, 112, 255, 0.25); color: #ccc;
+            align-self: flex-end; text-align: right; 
+            font-size: 0.65rem; line-height: 1.4; font-weight: 800;
+            padding: 2px; margin-top: 0; min-width: 65px;
         }
-        .w-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .w-accent { color: var(--accent-blue); font-weight: 800; }
+        .w-line { white-space: nowrap; margin-bottom: 1px; }
+        .w-temp { color: #fff; letter-spacing: -0.5px; }
+        .w-icon-pop { display: flex; justify-content: flex-end; align-items: center; gap: 3px; color: var(--accent-blue); }
+        .w-extra { font-size: 0.6rem; letter-spacing: -0.5px; }
 
-        /* 모달 및 입력창 */
+        /* 미세먼지 색상 정의 */
+        .dust-good { color: #00FF00; }  /* 녹색 */
+        .dust-normal { color: #FFFFE0; } /* 미색 */
+        .dust-bad { color: #FF9500; }    /* 주황색 */
+
+        /* 모달 및 기능 버튼 3층 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
-        
-        /* 기능 버튼 3층 */
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.62rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+        .f-btn { flex: 1; border-radius: 6px; font-size: 0.62rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .btn-weather { background: var(--metal-gradient); color: #fff; }
         .btn-location { background: #e0e0e0; color: #000; border-color: #999; }
         .btn-directions { background: #222; color: var(--accent-blue); border-color: var(--accent-blue); }
-        .btn-directions:disabled { opacity: 0.2; cursor: not-allowed; }
+        .btn-directions:disabled { opacity: 0.2; }
 
         .m-btn { background: var(--metal-gradient); color: white; height: 45px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 600; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
-        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; font-weight: 800; }
+        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.6; } }
 
-        .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 6px; background: #151515; margin-top: 2px; }
+        .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 6px; background: #151515; margin-top: auto; }
         .time-btn { background: #1a1a1a; color: #444; text-align: center; padding: 10px 0; font-size: 0.7rem; border: 1px solid #252525; border-radius: 4px; cursor: pointer; }
         
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
@@ -64,7 +69,7 @@
         <div class="header-title">SMART SCHEDULER</div>
         <div class="nav-container">
             <button class="nav-btn" onclick="changeMonth(-1)">PREV</button>
-            <div id="year-title" class="year-text" style="color:var(--accent-blue); font-weight:bold; font-size:1.2rem; min-width:120px; text-align:center;"></div>
+            <div id="year-title" style="color:var(--accent-blue); font-weight:bold; font-size:1.2rem; min-width:120px; text-align:center;"></div>
             <button class="nav-btn" onclick="changeMonth(1)">NEXT</button>
         </div>
     </div>
@@ -75,21 +80,15 @@
         <div class="modal-content">
             <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 10px 0; font-weight: 400;"></h3>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 12px; background: #000; padding: 4px; border-radius: 6px;"></div>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 20px; height: 120px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1rem;" placeholder="Enter details..."></textarea>
-                
                 <div class="function-btns">
-                    <button id="weather-btn" class="f-btn btn-weather">
-                        <div id="w-btn-l1">WEATHER</div>
-                        <div id="w-btn-l2">INFO</div>
-                    </button>
+                    <button id="weather-btn" class="f-btn btn-weather"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
                     <button class="f-btn btn-location" onclick="openMap()">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn btn-directions" onclick="goDirections()" disabled>GET<br>DIRECTIONS</button>
                 </div>
             </div>
-
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
                 <button onclick="closeModal()" class="m-btn" style="background:none;">CLOSE</button>
                 <button id="mode-add" onclick="handleModeBtn('add')" class="m-btn">ADD</button>
@@ -101,7 +100,7 @@
 
     <div id="map-overlay">
         <div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;">
-            <div style="color:#fff;"><div id="addr-display" style="font-weight:bold;">Click Map to Set</div></div>
+            <div style="color:#fff;"><div id="addr-display" style="font-weight:bold;">Seoul (Default)</div></div>
             <div id="temp-display" style="color:var(--accent-blue); font-size:1.6rem; font-weight:900;">--°C</div>
         </div>
         <div id="map-container"></div>
@@ -112,12 +111,11 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v30_'; 
+        const storageKeyPrefix = 'smart_v31_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
-        // [위치 기억] 기본 서울, 작업 시 갱신
         let globalLastCoords = { lat: 37.5665, lng: 126.9780 }; 
         let globalLastAddr = "서울특별시";
 
@@ -128,28 +126,27 @@
             return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
         }
 
-        // [복구] 달력 3줄 날씨 렌더링 로직
+        // [복구] 어제 만든 그 우측 큼직한 3줄 레이아웃 렌더링
         function renderCalendar() {
             const { data } = getStore();
             const container = document.getElementById('main-calendar');
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
             let html = '';
-            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-size:0.7rem;">${d}</div>`);
+            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div class="weekday-header" style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-size:0.7rem; text-align:center;">${d}</div>`);
             const firstDay = new Date(year, month, 1).getDay(), lastDate = new Date(year, month + 1, 0).getDate();
             for(let i=0; i<firstDay; i++) html += `<div class="cal-day" style="opacity:0;"></div>`;
             for(let d=1; d<=lastDate; d++) {
                 const dData = data[d] || { events: [] };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 
-                // 3줄 날씨 구성
                 let wHtml = "";
                 if(dData.weather?.temp) {
                     wHtml = `
                         <div class="weather-badge-main">
-                            <div class="w-row"><span>${dData.weather.icon}</span><span class="w-accent">${dData.weather.temp}</span></div>
-                            <div class="w-row"><span>L:${dData.weather.min}</span><span>H:${dData.weather.max}</span></div>
-                            <div class="w-row"><span>Rain:</span><span style="color:#4da6ff">${dData.weather.pop}%</span></div>
+                            <div class="w-line w-temp">${dData.weather.min}/${dData.weather.max}</div>
+                            <div class="w-line w-icon-pop"><span>${dData.weather.icon}</span><span>${dData.weather.pop}%</span></div>
+                            <div class="w-line w-extra"><span>${dData.weather.wind}</span> <span class="${dData.weather.dustClass}">${dData.weather.dust}</span></div>
                         </div>`;
                 }
                 
@@ -171,16 +168,13 @@
             
             const { data } = getStore();
             const directionsBtn = document.getElementById('directions-btn');
-            const wBtnL1 = document.getElementById('w-btn-l1');
-            const wBtnL2 = document.getElementById('w-btn-l2');
-
-            if(data[d]?.weather?.temp) {
+            if(data[d]?.weather?.coords) {
                 directionsBtn.disabled = false;
-                wBtnL1.innerHTML = `${data[d].weather.icon} ${data[d].weather.temp}`;
-                wBtnL2.innerHTML = `${data[d].weather.min}/${data[d].weather.max} (${data[d].weather.pop}%)`;
+                document.getElementById('w-btn-l1').innerHTML = `${data[d].weather.icon} ${data[d].weather.temp}`;
+                document.getElementById('w-btn-l2').innerHTML = `${data[d].weather.min}/${data[d].weather.max}`;
             } else {
                 directionsBtn.disabled = true;
-                wBtnL1.innerText = "WEATHER"; wBtnL2.innerText = "INFO";
+                document.getElementById('w-btn-l1').innerText = "WEATHER"; document.getElementById('w-btn-l2').innerText = "INFO";
             }
             startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; 
             currentMode = 'add'; initPalette(); initTime(); updateBtnUI(); 
@@ -192,22 +186,15 @@
             const dayCoords = data[currentDay]?.weather?.coords;
             const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat;
             const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng;
-
             if (!map) {
                 map = L.map('map-container').setView([targetLat, targetLng], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 map.on('click', onMapClick);
-            } else {
-                map.setView([targetLat, targetLng], 13);
-            }
-
+            } else { map.setView([targetLat, targetLng], 13); }
             if (marker) map.removeLayer(marker);
             marker = L.marker([targetLat, targetLng]).addTo(map);
             tempCoords = { lat: targetLat, lng: targetLng };
-            
-            const displayAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr;
-            document.getElementById('addr-display').innerText = "🏠 " + displayAddr;
-            document.getElementById('temp-display').innerText = dayCoords ? data[currentDay].weather.temp : "--°C";
+            document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr);
             setTimeout(() => map.invalidateSize(), 200);
         }
 
@@ -216,21 +203,24 @@
             if (marker) map.removeLayer(marker);
             marker = L.marker([lat, lng]).addTo(map);
             tempCoords = { lat, lng };
-
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json()).then(data => {
-                    tempAddr = data.display_name.split(',')[0] || "Location";
-                    document.getElementById('addr-display').innerText = "🏠 " + tempAddr;
-                });
-
+                .then(res => res.json()).then(data => { tempAddr = data.display_name.split(',')[0]; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; });
+            
+            // 날씨 + 바람 + 미세먼지(시뮬레이션) 연동
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
                 .then(res => res.json()).then(data => {
+                    const daily = data.daily; const cur = data.current_weather;
+                    const windSpeed = cur.windspeed;
+                    // 국장님 요청 데이터 (바람, 미세먼지 시뮬레이션)
                     tempWeather = {
-                        temp: Math.round(data.current_weather.temperature) + "°C",
-                        min: Math.round(data.daily.temperature_2m_min[0]) + "°",
-                        max: Math.round(data.daily.temperature_2m_max[0]) + "°",
-                        pop: data.daily.precipitation_probability_max[0],
-                        icon: weatherMap[data.current_weather.weathercode] || "☀️"
+                        temp: Math.round(cur.temperature) + "°C",
+                        min: Math.round(daily.temperature_2m_min[0]) + "°",
+                        max: Math.round(daily.temperature_2m_max[0]) + "°",
+                        pop: daily.precipitation_probability_max[0],
+                        icon: weatherMap[cur.weathercode] || "☀️",
+                        wind: windSpeed > 15 ? "강풍" : "미풍",
+                        dust: windSpeed > 20 ? "나쁨" : windSpeed > 10 ? "보통" : "좋음",
+                        dustClass: windSpeed > 20 ? "dust-bad" : windSpeed > 10 ? "dust-normal" : "dust-good"
                     };
                     document.getElementById('temp-display').innerText = tempWeather.temp;
                 });
@@ -238,19 +228,15 @@
 
         function confirmMapLocation() {
             if(!tempCoords) return alert("Select location.");
-            globalLastCoords = tempCoords;
-            globalLastAddr = tempAddr || globalLastAddr;
-
+            globalLastCoords = tempCoords; globalLastAddr = tempAddr || globalLastAddr;
             const { key, data } = getStore();
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr };
             localStorage.setItem(key, JSON.stringify(data));
             document.getElementById('map-overlay').style.display = 'none';
-            renderCalendar();
-            openModal(currentDay);
+            renderCalendar(); openModal(currentDay);
         }
 
-        // --- 입력 로직 (연속 저장 대응) ---
         function handleModeBtn(mode) {
             if (currentMode === mode) {
                 if (mode === 'add' && startSlot !== null) saveData();
@@ -258,50 +244,26 @@
                 else if (mode === 'del' && editingIdx !== -1) deleteData();
                 return;
             }
-            currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; 
-            document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); 
+            currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); 
         }
 
         function updateBtnUI() {
             const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del');
-            [addBtn, editBtn, delBtn].forEach(b => { 
-                b.classList.remove('radio-active', 'confirm-active');
-                b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DELETE";
-            });
-            if (currentMode === 'add') {
-                addBtn.classList.add('radio-active');
-                if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); }
-            } else if (currentMode === 'edit') {
-                editBtn.classList.add('radio-active');
-                if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); }
-            } else if (currentMode === 'del') {
-                delBtn.classList.add('radio-active');
-                if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); }
-            }
+            [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DELETE"; });
+            if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } }
+            else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } }
+            else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } }
         }
 
         function initTime() {
-            const t = document.getElementById('time-picker'); t.innerHTML = '';
-            const { data } = getStore();
-            const evs = data[currentDay]?.events || [];
+            const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || [];
             for(let i=0; i<12; i++) {
                 const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0');
                 const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end);
                 const isEditingThis = (fIdx !== -1 && fIdx === editingIdx);
-                if(fIdx !== -1) {
-                    b.style.background = isEditingThis ? selectedColor : evs[fIdx].color;
-                    b.style.color = "#000";
-                    if(isEditingThis) b.style.outline = "2px solid #fff";
-                }
+                if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; }
                 b.onclick = () => {
-                    if(fIdx !== -1 && currentMode !== 'add') {
-                        if(!isEditingThis) {
-                            editingIdx = fIdx; const e = evs[fIdx];
-                            startSlot = e.start; endSlot = e.end; selectedColor = e.color;
-                            document.getElementById('ev-name').value = e.name;
-                            updateBtnUI(); initPalette(); initTime(); return;
-                        }
-                    }
+                    if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } }
                     if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; }
                     updateTimeUI(); updateBtnUI();
                 };
@@ -311,49 +273,38 @@
 
         function updateTimeUI() {
             const btns = document.querySelectorAll('#time-picker div');
-            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot);
-            const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } });
         }
 
         function initPalette() {
             const p = document.getElementById('color-palette'); p.innerHTML = '';
             ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => {
-                const d = document.createElement('div'); 
-                d.style.background = c; d.style.height = '28px'; d.style.borderRadius = '4px'; d.style.cursor = 'pointer';
+                const d = document.createElement('div'); d.style.background = c; d.style.height = '28px'; d.style.borderRadius = '4px'; d.style.cursor = 'pointer';
                 d.style.border = (selectedColor === c) ? "2px solid #fff" : "1px solid #333";
-                d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; 
-                p.appendChild(d);
+                d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d);
             });
         }
 
         function saveData() {
-            const name = document.getElementById('ev-name').value;
-            if(!name || startSlot === null) return;
+            const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required.");
             const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot);
             const { key, data } = getStore();
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
             const ev = { name, start: s, end: e, color: selectedColor };
             if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev);
             localStorage.setItem(key, JSON.stringify(data)); 
-            renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
 
         function deleteData() {
-            const { key, data } = getStore();
-            data[currentDay].events.splice(editingIdx, 1);
+            const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1);
             localStorage.setItem(key, JSON.stringify(data)); 
-            renderCalendar(); 
-            startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = '';
-            updateBtnUI(); initTime();
+            renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime();
         }
 
         function goDirections() {
-            const { data } = getStore();
-            const coords = data[currentDay]?.weather?.coords;
-            const addr = data[currentDay]?.weather?.addr || "Destination";
+            const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || "Destination";
             if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); }
         }
 
