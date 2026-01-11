@@ -152,9 +152,10 @@
         };
 
         function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
-        function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; initPalette(); initTime(); updateBtnUI(); }
-
-        /* [핵심 수정] 버튼 UI 로직: 추가 모드에서 한 칸이라도 찍히면 즉시 SAVE 전환 */
+        function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
+        function refreshModalUI() { const { data } = getStore(); const w = data[currentDay]?.weather; const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0}); const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr; document.getElementById('modal-weather-info').innerHTML = `<span>${targetAddr}</span> <span>${targetW.icon}</span>`; }
+        
+        /* [보정] 버튼 상태 업데이트: 추가/수정/삭제 시 블럭 선택 시에만 문구 변경 */
         function updateBtnUI() { 
             const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); 
             [addBtn, editBtn, delBtn].forEach(b => { 
@@ -164,26 +165,17 @@
 
             if (currentMode === 'add') { 
                 addBtn.classList.add('radio-active'); 
-                if (startSlot !== null) { // 추가 모드에서 슬롯이 하나라도 선택되면 즉시 SAVE
-                    addBtn.innerText = "SAVE"; 
-                    addBtn.classList.add('confirm-active'); 
-                } 
+                if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } 
             } else if (currentMode === 'edit') { 
                 editBtn.classList.add('radio-active'); 
-                if (editingIdx !== -1) { 
-                    editBtn.innerText = "UPDATE"; 
-                    editBtn.classList.add('confirm-active'); 
-                } 
+                if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } 
             } else if (currentMode === 'del') { 
                 delBtn.classList.add('radio-active'); 
-                if (editingIdx !== -1) { 
-                    delBtn.innerText = "CONFIRM"; 
-                    delBtn.classList.add('confirm-active'); 
-                } 
+                if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } 
             } 
         }
 
-        /* [핵심 수정] 추가 모드 작동 방식: 빈칸 선택 시 즉시 SAVE 전환 및 블럭 확장 기능 유지 */
+        /* [보정] 시간 선택 로직: 수정 모드에서 블럭 선택 시 UPDATE로 전환 및 범위 수정 활성화 */
         function initTime() { 
             const t = document.getElementById('time-picker'); t.innerHTML = ''; 
             const { data } = getStore(); const evs = data[currentDay]?.events || []; 
@@ -197,17 +189,19 @@
                 if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; }
                 
                 b.onclick = () => { 
-                    if(fIdx !== -1 && currentMode !== 'add') { // 수정/삭제 시 블럭 선택
+                    if(fIdx !== -1 && currentMode !== 'add' && editingIdx === -1) { 
+                        // 처음 블럭을 선택했을 때 (수정/삭제 진입)
                         editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; 
                         selectedColor = e.color; document.getElementById('ev-name').value = e.name;
-                    } else { // 추가 모드 또는 빈칸 클릭 시
+                    } else { 
+                        // 추가 모드이거나, 이미 수정할 블럭을 선택한 후 범위 조정 중일 때
                         if(startSlot === null || (startSlot !== null && endSlot !== null)) { 
                             startSlot = i; endSlot = null; 
                         } else { 
                             endSlot = i; 
                         }
                     }
-                    updateTimeUI(); updateBtnUI(); // UI 즉시 갱신 (SAVE 버튼 전환 포함)
+                    updateTimeUI(); updateBtnUI(); 
                 }; 
                 t.appendChild(b); 
             } 
@@ -227,7 +221,20 @@
 
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#FF9500', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
         function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
-        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("내용을 입력하세요."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
+        
+        function saveData() { 
+            const name = document.getElementById('ev-name').value; 
+            if(!name || startSlot === null) return alert("내용을 입력하세요."); 
+            const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); 
+            const { key, data } = getStore(); 
+            if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; 
+            const ev = { name, start: s, end: e, color: selectedColor }; 
+            if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); 
+            localStorage.setItem(key, JSON.stringify(data)); 
+            renderCalendar(); 
+            resetToInputMode(); // 저장 후 EDIT 모드로 복귀
+        }
+
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
         window.onload = async () => { await fetchLastLocationWeather(); renderCalendar(); };
