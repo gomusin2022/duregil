@@ -21,48 +21,60 @@
         
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
-        .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
+        
+        /* [수정] 날짜 칸 자체를 플렉스로 설정 */
+        .cal-day { 
+            background: #0a0a0a; padding: 5px; cursor: pointer; 
+            display: flex; flex-direction: column; justify-content: space-between; 
+            position: relative; min-height: 0; overflow: hidden; 
+        }
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
         
-        .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
+        .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 5px; }
 
-        /* [수정] 높이 33px 고정 -> 날씨 2번째 줄 아이콘 옆에 정확히 배치 */
-        .day-location-center {
-            position: absolute; 
-            bottom: 33px; 
-            left: 45%; 
-            transform: translateX(-50%);
-            color: var(--location-color); 
-            font-size: 1rem; 
-            font-weight: 900;
-            width: 75%; 
-            text-align: center; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis;
-            z-index: 1; 
-            pointer-events: none; 
-            opacity: 0.9;
-            text-shadow: 2px 2px 4px #000;
+        /* [핵심 수정] 날씨와 지역명을 감싸는 컨테이너 */
+        .day-info-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            width: 100%;
         }
 
-        .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
-        .w-line { white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } 
+        /* [핵심 수정] 지역명이 날씨 2번째 줄 위치에 오도록 라인별로 배치 */
+        .info-row {
+            display: flex;
+            width: 100%;
+            justify-content: space-between; /* 왼쪽 장소, 오른쪽 날씨 */
+            align-items: center;
+            height: 1.4rem;
+            line-height: 1.4rem;
+        }
+
+        .day-location-text {
+            color: var(--location-color); font-size: 0.95rem; font-weight: 900;
+            text-align: left; padding-left: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            opacity: 0.9; text-shadow: 2px 2px 3px #000;
+            flex: 1; /* 남은 공간 다 차지 */
+        }
+
+        .weather-badge-main { text-align: right; font-size: 1.05rem; font-weight: 900; width: auto; }
+        .w-line { white-space: nowrap; }
         .w-temp { color: #fff; letter-spacing: -1px; }
-        .w-icon-pop { color: var(--accent-blue); display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
-        .w-extra { font-size: 0.95rem; font-weight: 800; letter-spacing: -1px; }
+        .w-icon-pop { color: var(--accent-blue); display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
+        .w-extra { font-size: 0.9rem; font-weight: 800; letter-spacing: -1px; }
         .dust-good { color: #00FF00; } .dust-normal { color: #FFFFE0; } .dust-bad { color: #FF9500; }    
 
+        .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 7px; background: #151515; border-radius: 2px; width: 100%; margin-top: 3px; }
+        
+        /* 모달 스타일 유지 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
-        
         #weather-btn { color: #FFFFFF; }      
         #loc-set-btn { color: var(--location-color); } 
         #directions-btn { color: var(--accent-blue); } 
-
-        .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 48px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; }
         .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
         .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; }
@@ -85,32 +97,11 @@
 
     <div class="calendar-container"><div id="main-calendar" class="cal-grid"></div></div>
 
-    <div id="input-modal" class="modal">
-        <div class="modal-content">
-            <h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 10px 0; font-weight: 400;"></h3>
-            <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-bottom: 12px; background: #000; padding: 5px; border-radius: 6px;"></div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; height: 130px;">
-                <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; gap: 5px; background: #000; padding: 5px; border-radius: 6px;"></div>
-                <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1.1rem;" placeholder="Enter details..."></textarea>
-                <div class="function-btns">
-                    <button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button>
-                    <button id="loc-set-btn" class="f-btn" onclick="openMap()">LOCATION<br>SET</button>
-                    <button id="directions-btn" class="f-btn" onclick="goDirections()" disabled>GET<br>DIR</button>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                <button onclick="closeModal()" class="m-btn" style="background:none;">CLOSE</button>
-                <button id="mode-add" onclick="handleModeBtn('add')" class="m-btn">ADD</button>
-                <button id="mode-edit" onclick="handleModeBtn('edit')" class="m-btn">EDIT</button>
-                <button id="mode-del" onclick="handleModeBtn('del')" class="m-btn">DEL</button>
-            </div>
-        </div>
-    </div>
-
+    <div id="input-modal" class="modal"><div class="modal-content"><h3 id="modal-date-title" style="text-align:center; color:#fff; margin:0 0 10px 0; font-weight: 400;"></h3><div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-bottom: 12px; background: #000; padding: 5px; border-radius: 6px;"></div><div style="display: flex; gap: 10px; margin-bottom: 20px; height: 130px;"><div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 90px; gap: 5px; background: #000; padding: 5px; border-radius: 6px;"></div><textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; resize:none; font-size:1.1rem;" placeholder="Enter details..."></textarea><div class="function-btns"><button id="weather-btn" class="f-btn"><div id="w-btn-l1">WEATHER</div><div id="w-btn-l2">INFO</div></button><button id="loc-set-btn" class="f-btn" onclick="openMap()">LOCATION<br>SET</button><button id="directions-btn" class="f-btn" onclick="goDirections()" disabled>GET<br>DIR</button></div></div><div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"><button onclick="closeModal()" class="m-btn" style="background:none;">CLOSE</button><button id="mode-add" onclick="handleModeBtn('add')" class="m-btn">ADD</button><button id="mode-edit" onclick="handleModeBtn('edit')" class="m-btn">EDIT</button><button id="mode-del" onclick="handleModeBtn('del')" class="m-btn">DEL</button></div></div></div>
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v48_'; 
+        const storageKeyPrefix = 'smart_v50_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -120,25 +111,16 @@
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
 
-        // [정밀 보정된 한 단어 가공 엔진]
+        // [정밀 주소 가공 엔진]
         function formatAddress(fullAddr) {
             if(!fullAddr) return "";
-            // 대한민국 등 제거하고 공백/콤마로 완벽 분해
             const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1);
-            
-            // 1순위 구, 2순위 군, 3순위 읍, 4순위 면, 5순위 리
             const priorities = ['구', '군', '읍', '면', '리'];
             for (let unit of priorities) {
-                // 앞에서부터 찾으면 도(Province) 하위의 시(City)에 포함된 구/군을 먼저 찾게 됨
                 const found = parts.find(p => p.endsWith(unit));
                 if(found) return found;
             }
-
-            // 시(City) 단위를 제외하고 남은 것 중 동 단위를 마지막으로 확인
-            const dong = parts.find(p => p.endsWith('동'));
-            if(dong) return dong;
-
-            // 정 안되면 가장 마지막 조각 (보통 가장 구체적인 지명임)
+            const dong = parts.find(p => p.endsWith('동')); if(dong) return dong;
             return parts[parts.length - 1];
         }
 
@@ -148,7 +130,7 @@
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
             document.getElementById('year-title').innerText = `${year}. ${(month + 1).toString().padStart(2, '0')}`;
             let html = '';
-            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:10px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
+            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach((d,i)=> html += `<div style="color:${i===0?'#ff4d4d':i===6?'#4da6ff':'#888'}; font-weight:800; padding:8px 0; text-align:center; font-size:0.8rem; background:#111;">${d}</div>`);
             
             const firstDay = new Date(year, month, 1).getDay();
             const lastDate = new Date(year, month + 1, 0).getDate();
@@ -159,14 +141,28 @@
             for(let d = 1; d <= lastDate; d++) {
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
-                let wHtml = dData.weather?.temp ? `<div class="weather-badge-main"><div class="w-line w-temp">${dData.weather.min}/${dData.weather.max}</div><div class="w-line w-icon-pop"><span>${dData.weather.icon}</span><span>${dData.weather.pop}%</span></div><div class="w-line w-extra"><span>${dData.weather.wind}</span> <span class="${dData.weather.dustClass}">${dData.weather.dust}</span></div></div>` : "";
-                
-                let locName = dData.weather?.addr ? formatAddress(dData.weather.addr) : "";
-                let locHtml = locName ? `<div class="day-location-center">${locName}</div>` : "";
+                let w = dData.weather || {};
+                let locName = w.addr ? formatAddress(w.addr) : "";
+
+                // [수정] 날씨 정보를 3줄로 분리하여 지역명과 결합
+                let wHtml = "";
+                if(w.temp) {
+                    wHtml = `
+                        <div class="day-info-wrapper">
+                            <div class="info-row"><div class="weather-badge-main w-temp">${w.min}/${w.max}</div></div>
+                            <div class="info-row">
+                                <div class="day-location-text">${locName}</div>
+                                <div class="weather-badge-main w-icon-pop"><span>${w.icon}</span><span>${w.pop}%</span></div>
+                            </div>
+                            <div class="info-row"><div class="weather-badge-main w-extra"><span>${w.wind}</span> <span class="${w.dustClass}">${w.dust}</span></div></div>
+                        </div>`;
+                } else if(locName) {
+                    // 날씨는 없고 위치만 있을 때도 2번째 줄 높이 유지
+                    wHtml = `<div class="day-info-wrapper"><div class="info-row"></div><div class="info-row"><div class="day-location-text">${locName}</div></div><div class="info-row"></div></div>`;
+                }
 
                 html += `<div class="cal-day" onclick="openModal(${d})">
                             <div class="day-num">${d}</div>
-                            ${locHtml}
                             ${wHtml}
                             <div class="time-bar">${barHtml}</div>
                          </div>`;
@@ -178,6 +174,7 @@
             container.style.gridTemplateRows = `35px repeat(${totalCells / 7}, 1fr)`;
         }
 
+        // --- 이하 운영 로직 동일 ---
         window.openModal = function(d) { currentDay = d; const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; document.getElementById('input-modal').style.display = 'flex'; resetToInputMode(); };
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
         function refreshModalUI() { const { data } = getStore(); const directionsBtn = document.getElementById('directions-btn'); const locBtn = document.getElementById('loc-set-btn'); if(data[currentDay]?.weather?.coords) { directionsBtn.disabled = false; document.getElementById('w-btn-l1').innerHTML = `${data[currentDay].weather.icon} ${data[currentDay].weather.temp}`; document.getElementById('w-btn-l2').innerHTML = `${data[currentDay].weather.min}/${data[currentDay].weather.max}`; locBtn.innerHTML = `${formatAddress(data[currentDay].weather.addr)}<br>SET`; } else { directionsBtn.disabled = true; document.getElementById('w-btn-l1').innerText = "WEATHER"; document.getElementById('w-btn-l2').innerText = "INFO"; locBtn.innerHTML = "LOCATION<br>SET"; } }
