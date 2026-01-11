@@ -14,15 +14,13 @@
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
-        /* [핵심 수정] 헤더 컨테이너: 타이틀 정중앙 배치를 위한 포지셔닝 */
         .header-container { 
-            display: flex; align-items: center; justify-content: flex-end; /* 기본 우측 정렬 */
+            display: flex; align-items: center; justify-content: flex-end;
             padding: 10px 15px; background: linear-gradient(145deg, #1a1a1a, #000000); 
             border-bottom: 1px solid #333; flex-shrink: 0; position: relative; min-height: 50px;
         }
         #copy-status-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--ai-orange); color: #000; font-weight: 900; align-items: center; justify-content: center; z-index: 100; font-size: 0.95rem; cursor: pointer; }
 
-        /* [수정] 타이틀: 컨테이너 기준 절대 위치 정중앙 배치 */
         .header-title { 
             position: absolute; left: 50%; transform: translateX(-50%);
             font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: 1px; 
@@ -30,10 +28,8 @@
         }
         
         .header-right-zone { display: flex; align-items: center; gap: 15px; z-index: 2; }
-
         .nav-container { display: flex; align-items: center; gap: 8px; }
         #year-title { color: var(--accent-blue); font-weight: bold; font-size: 1.3rem; min-width: 100px; text-align: center; }
-        
         #top-weather-display { display: flex; align-items: center; gap: 10px; font-weight: 900; color: var(--accent-blue); font-size: 0.9rem; border-left: 1px solid #333; padding-left: 15px; }
         .top-w-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
@@ -69,6 +65,9 @@
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
+        .radio-active { border: 1.5px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
+        .confirm-active { background: var(--accent-blue) !important; color: #fff !important; animation: blink 1s infinite; }
+
         #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; box-sizing:border-box; }
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
     </style>
@@ -77,9 +76,7 @@
 
     <div class="header-container">
         <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
-        
         <div class="header-title">SMART AI SCHEDULER</div>
-        
         <div class="header-right-zone">
             <div class="nav-container">
                 <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
@@ -95,7 +92,7 @@
     <div id="ai-modal" class="ai-modal">
         <div class="ai-content">
             <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서</h3>
-            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 클래식기타 레슨 오전10시부터 오후1시까지"></textarea>
+            <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 피아노레슨 오전10시부터 오후1시까지"></textarea>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
                 <button class="m-btn" onclick="closeAI()">닫기</button>
@@ -136,12 +133,11 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v3000_'; 
+        const storageKeyPrefix = 'smart_v3500_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false;
-
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
         let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; let globalLastAddr = lastLocation.addr;
@@ -156,12 +152,8 @@
                 const data = await res.json();
                 const daily = data.daily; const cur = data.current_weather;
                 defaultWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" };
-                
                 const topW = document.getElementById('top-weather-display');
-                topW.innerHTML = `
-                    <div class="top-w-item" style="color:var(--location-color)">📍${formatAddress(globalLastAddr)}</div>
-                    <div class="top-w-item">${defaultWeather.icon} ${defaultWeather.temp}</div>
-                `;
+                topW.innerHTML = `<div class="top-w-item" style="color:var(--location-color)">📍${formatAddress(globalLastAddr)}</div><div class="top-w-item">${defaultWeather.icon} ${defaultWeather.temp}</div>`;
             } catch (e) {}
         }
 
@@ -200,10 +192,7 @@
                         const targetFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                         const fetchTask = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${globalLastCoords.lat}&longitude=${globalLastCoords.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`)
                         .then(res => res.json()).then(w => {
-                            data[d].weather = {
-                                coords: globalLastCoords, addr: globalLastAddr,
-                                temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
-                            };
+                            data[d].weather = { coords: globalLastCoords, addr: globalLastAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good" };
                         }).catch(() => { data[d].weather = { coords: globalLastCoords, addr: globalLastAddr }; });
                         promises.push(fetchTask);
                     }
@@ -211,7 +200,6 @@
                 await Promise.all(promises);
                 localStorage.setItem(key, JSON.stringify(data));
                 renderCalendar();
-                alert(`모든 일정이 완벽히 등록되었습니다.`);
                 closeAI();
             }
         }
@@ -246,9 +234,7 @@
                 try {
                     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`);
                     const w = await res.json();
-                    data[targetDay].weather = {
-                        coords: memoCoords, addr: memoAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
-                    };
+                    data[targetDay].weather = { coords: memoCoords, addr: memoAddr, temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good" };
                     localStorage.setItem(key, JSON.stringify(data));
                     renderCalendar(); 
                 } catch(e) {}
@@ -277,6 +263,7 @@
             container.style.gridTemplateRows = `18px repeat(${Math.ceil((firstDay + lastDate + remaining) / 7)}, 1fr)`;
         }
 
+        /* [수정 포인트] 모달 오픈 시 강제로 'ADD' 모드 설정 및 UI 초기화 */
         window.openModal = function(d) { 
             currentDay = d; 
             const { key, data } = getStore();
@@ -286,11 +273,20 @@
                 localStorage.setItem(key, JSON.stringify(data));
                 renderCalendar();
             }
-            const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; 
-            document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; 
+            document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d}`; 
             document.getElementById('input-modal').style.display = 'flex'; 
-            resetToInputMode(); 
-            updateBtnUI(); 
+            
+            // 핵심: 모달을 열 때마다 무조건 'add' 모드로 초기화
+            currentMode = 'add';
+            startSlot = null;
+            endSlot = null;
+            editingIdx = -1;
+            document.getElementById('ev-name').value = '';
+            
+            initPalette(); 
+            initTime(); 
+            updateBtnUI(); // 여기서 버튼 상태를 ADD로 강제 업데이트
+            refreshModalUI();
         };
 
         function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
@@ -304,7 +300,7 @@
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
             const modalWeatherBox = document.getElementById('modal-weather-info');
-            modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span><span>${targetW.icon}</span><span>${targetW.pop}%</span><span class="modal-temp-range">${targetW.min}/${targetW.max}</span>`;
+            modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span><span>${targetW.icon}</span><span>${targetW.pop}%</span>`;
             directionsBtn.disabled = !(w && w.coords);
         }
 
@@ -312,8 +308,37 @@
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
         async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
-        function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
-        function updateBtnUI() { const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; }); if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } } else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } } else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } } }
+        
+        function handleModeBtn(mode) { 
+            if (currentMode === mode) { 
+                if (mode === 'add' && startSlot !== null) saveData(); 
+                else if (mode === 'edit' && editingIdx !== -1) saveData(); 
+                else if (mode === 'del' && editingIdx !== -1) deleteData(); 
+                return; 
+            } 
+            currentMode = mode; 
+            updateBtnUI(); 
+            initTime(); 
+        }
+
+        function updateBtnUI() { 
+            const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); 
+            [addBtn, editBtn, delBtn].forEach(b => { 
+                b.classList.remove('radio-active', 'confirm-active'); 
+                b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; 
+            }); 
+            if (currentMode === 'add') { 
+                addBtn.classList.add('radio-active'); 
+                if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } 
+            } else if (currentMode === 'edit') { 
+                editBtn.classList.add('radio-active'); 
+                if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } 
+            } else if (currentMode === 'del') { 
+                delBtn.classList.add('radio-active'); 
+                if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } 
+            } 
+        }
+
         function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
         function updateTimeUI() { const btns = document.querySelectorAll('#time-picker div'); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } }); }
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
