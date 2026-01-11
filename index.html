@@ -105,7 +105,10 @@
 
     <div id="input-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h3 id="modal-date-title" style="margin:0;"></h3><div id="modal-weather-info"></div></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 id="modal-date-title" style="margin:0;"></h3>
+                <div id="modal-weather-info"></div>
+            </div>
             <div id="time-picker" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 8px; background: #000; padding: 4px; border-radius: 6px;"></div>
             <div style="display: flex; gap: 8px; margin-bottom: 12px; height: 140px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
@@ -302,19 +305,25 @@
         function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
+        /* [수정 포인트] 일일 모달창의 날씨 정보 출력 로직 보완 */
         function refreshModalUI() { 
             const { data } = getStore(); 
             const locBtn = document.getElementById('loc-set-btn'); const directionsBtn = document.getElementById('directions-btn');
             const w = data[currentDay]?.weather;
+            
+            // 데이터가 없을 경우를 대비한 기본값 설정
             const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0, wind:"-", dust:"-"});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
+            
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
+            
             const modalWeatherBox = document.getElementById('modal-weather-info');
+            // 바람(💨)과 미세먼지(😷) 텍스트 강제 삽입
             modalWeatherBox.innerHTML = `
                 <span class="modal-loc-badge">${targetAddr}</span>
                 <span>${targetW.icon} ${targetW.pop}%</span>
-                <span style="color:#888; font-size:0.75rem;">💨${targetW.wind}</span>
-                <span class="${targetW.dustClass}" style="font-size:0.75rem;">😷${targetW.dust}</span>
+                <span style="color:#FFCC00; font-size:0.75rem;">💨${targetW.wind || '-'}</span>
+                <span class="${targetW.dustClass || ''}" style="font-size:0.75rem;">😷${targetW.dust || '-'}</span>
             `;
             directionsBtn.disabled = !(w && w.coords);
         }
@@ -328,7 +337,7 @@
         function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
         function updateTimeUI() { const btns = document.querySelectorAll('#time-picker div'); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot); const e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); btns.forEach((btn, idx) => { if(startSlot !== null && idx >= s && idx <= e) { btn.style.background = selectedColor; btn.style.outline = "1.5px solid #fff"; } else { btn.style.outline = "none"; } }); }
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
-        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) { data[currentDay].events[editingIdx] = ev; localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; } else { data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; document.getElementById('ev-name').value = ''; } updateBtnUI(); initTime(); }
+        function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; } updateBtnUI(); initTime(); }
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); resetToInputMode(); }
         function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
