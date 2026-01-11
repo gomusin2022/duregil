@@ -48,19 +48,23 @@
         #modal-weather-info { display: flex; align-items: center; gap: 6px; color: var(--accent-blue); font-weight: 900; font-size: 0.95rem; }
 
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        
-        /* [중요] 우측 세로줄 버튼 텍스트 가독성 강화 스타일 */
         .f-btn { 
             flex: 1; border-radius: 6px; font-size: 0.7rem; font-weight: 900; border: 1px solid #444; 
             cursor: pointer; display: flex; align-items: center; justify-content: center; 
             text-align: center; line-height: 1.1; background: var(--metal-gradient); 
             letter-spacing: -0.2px; text-shadow: 1px 1px 2px #000;
         }
-        #weather-btn { color: #FFFFFF !important; } /* 날씨: 순백색 */
-        #loc-set-btn { color: #E0E0E0 !important; } /* 위치: 밝은실버 */
-        #directions-btn { color: #5AC8FA !important; } /* 길찾기: 밝은스카이블루 */
-        #directions-btn:disabled { color: #444 !important; text-shadow: none; }
         
+        .cp-container { display: flex; gap: 4px; margin-top: 4px; }
+
+        /* [수정 부위] COPY ALL 버튼 색상 보정: 다크메탈 배경 + 오렌지 글씨 */
+        #copy-day-btn { 
+            width: 100%; height: 32px; border-radius: 6px; border: 1px solid #444; 
+            background: linear-gradient(145deg, #2a2a2a, #151515) !important; 
+            color: #FF9500 !important; 
+            font-size: 0.75rem; font-weight: 900; cursor: pointer; transition: 0.2s; 
+        }
+
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
         
@@ -71,7 +75,7 @@
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
     </style>
 </head>
-<body id="main-body">
+<body>
 
     <div class="header-container">
         <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
@@ -96,14 +100,14 @@
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
                     <div class="cp-container">
-                        <button id="copy-day-btn" class="cp-btn" style="width:100%; color: #FF9500; border-color: #FF9500;" onclick="activateStampMode()">COPY ALL (STAMP)</button>
+                        <button id="copy-day-btn" onclick="activateStampMode()">COPY ALL (STAMP)</button>
                     </div>
                 </div>
 
                 <div class="function-btns">
-                    <button id="weather-btn" class="f-btn"><div style="display:flex; flex-direction:column;"><span>WEATHER</span><span id="w-btn-sub" style="font-size:0.6rem;">INFO</span></div></button>
-                    <button id="loc-set-btn" class="f-btn" onclick="openMap()">LOCATION<br>SET</button>
-                    <button id="directions-btn" class="f-btn" onclick="goDirections()" disabled>GET<br>DIR</button>
+                    <button id="weather-btn" class="f-btn" style="color:#fff !important;">WEATHER</button>
+                    <button id="loc-set-btn" class="f-btn" onclick="openMap()" style="color:#E0E0E0 !important;">LOCATION<br>SET</button>
+                    <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important;">GET<br>DIR</button>
                 </div>
             </div>
             
@@ -119,7 +123,7 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v450_'; 
+        const storageKeyPrefix = 'smart_v76_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -151,25 +155,25 @@
             memoCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
             memoAddr = curData.weather?.addr || "";
             isStampMode = true;
-            document.body.classList.add('stamp-mode-active');
+            document.body.classList.add('stamp-active');
             document.getElementById('copy-status-bar').style.display = 'flex';
             closeModal();
         }
 
         function deactivateStampMode() {
             isStampMode = false;
-            document.body.classList.remove('stamp-mode-active');
+            document.body.classList.remove('stamp-active');
             document.getElementById('copy-status-bar').style.display = 'none';
         }
 
         window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) deactivateStampMode(); });
 
-        function handleDayAction(d) {
-            if (isStampMode) executeStampPaste(d);
+        function handleCalendarAction(d) {
+            if (isStampMode) executeStampRecombineEngine(d);
             else openModal(d);
         }
 
-        async function executeStampPaste(targetDay) {
+        async function executeStampRecombineEngine(targetDay) {
             const { key, data } = getStore();
             if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
             data[targetDay].events = JSON.parse(JSON.stringify(memoEvents));
@@ -188,7 +192,7 @@
                     };
                     localStorage.setItem(key, JSON.stringify(data));
                     renderCalendar(); 
-                } catch(e) { console.log("Stamp Recombine failed"); }
+                } catch(e) { console.log("Sync failed"); }
             }
         }
 
@@ -206,7 +210,7 @@
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dData.weather || {}; let locName = w.addr ? formatAddress(w.addr) : "";
                 let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div><div class="w-line" style="font-size:0.95rem;font-weight:800;letter-spacing:-1px;"><span>${w.wind}</span> <span class="${w.dustClass}">${w.dust}</span></div></div>` : "";
-                html += `<div class="cal-day" onclick="handleDayAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
+                html += `<div class="cal-day" onclick="handleCalendarAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
             const remaining = (new Date(year, month + 1, 0).getDay() === 6) ? 0 : 6 - new Date(year, month + 1, 0).getDay();
             for(let d = 1; d <= remaining; d++) html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`;
@@ -236,15 +240,10 @@
         function refreshModalUI() { 
             const { data } = getStore(); 
             const directionsBtn = document.getElementById('directions-btn'); const locBtn = document.getElementById('loc-set-btn'); 
-            const wBtnSub = document.getElementById('w-btn-sub');
             const w = data[currentDay]?.weather;
             const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
-            
-            // 버튼 내부 가시성 보완
-            wBtnSub.innerText = `${targetW.icon} ${targetW.pop}%`;
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
-            
             const modalWeatherBox = document.getElementById('modal-weather-info');
             modalWeatherBox.innerHTML = `<span class="modal-loc-badge">${targetAddr}</span><span>${targetW.icon}</span><span>${targetW.pop}%</span><span class="modal-temp-range">${targetW.min}/${targetW.max}</span>`;
             directionsBtn.disabled = !(w && w.coords);
@@ -252,8 +251,8 @@
 
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; tempWeather = dayCoords ? data[currentDay].weather : (defaultWeather || {}); document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : globalLastAddr); setTimeout(() => map.invalidateSize(), 200); }
         function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; tempWeather = {}; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`).then(res => res.json()).then(data => { const daily = data.daily; const cur = data.current_weather; tempWeather = { temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°", pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍", dust: cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good" }; document.getElementById('temp-display').innerText = tempWeather.temp; }); }
-        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 데이터를 불러오는 중입니다. 잠시만 기다려주세요."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
-        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; resetToInputMode(); }
+        async function confirmMapLocation() { if(!tempCoords || !tempWeather.temp) return alert("날씨 불러오는 중..."); globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr) || globalLastAddr; localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr})); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; localStorage.setItem(key, JSON.stringify(data)); await fetchLastLocationWeather(); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); resetToInputMode(); }
+        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
         function handleModeBtn(mode) { if (currentMode === mode) { if (mode === 'add' && startSlot !== null) saveData(); else if (mode === 'edit' && editingIdx !== -1) saveData(); else if (mode === 'del' && editingIdx !== -1) deleteData(); return; } currentMode = mode; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
         function updateBtnUI() { const addBtn = document.getElementById('mode-add'), editBtn = document.getElementById('mode-edit'), delBtn = document.getElementById('mode-del'); [addBtn, editBtn, delBtn].forEach(b => { b.classList.remove('radio-active', 'confirm-active'); b.innerText = b.id.includes('add') ? "ADD" : b.id.includes('edit') ? "EDIT" : "DEL"; }); if (currentMode === 'add') { addBtn.classList.add('radio-active'); if (startSlot !== null) { addBtn.innerText = "SAVE"; addBtn.classList.add('confirm-active'); } } else if (currentMode === 'edit') { editBtn.classList.add('radio-active'); if (editingIdx !== -1) { editBtn.innerText = "UPDATE"; editBtn.classList.add('confirm-active'); } } else if (currentMode === 'del') { delBtn.classList.add('radio-active'); if (editingIdx !== -1) { delBtn.innerText = "CONFIRM"; delBtn.classList.add('confirm-active'); } } }
         function initTime() { const t = document.getElementById('time-picker'); t.innerHTML = ''; const { data } = getStore(); const evs = data[currentDay]?.events || []; for(let i=0; i<12; i++) { const b = document.createElement('div'); b.className = 'time-btn'; b.innerText = (i+6).toString().padStart(2,'0'); b.style.background = '#1a1a1a'; b.style.color = '#444'; b.style.textAlign = 'center'; b.style.padding = '10px 0'; b.style.fontSize = '0.7rem'; b.style.border = '1px solid #252525'; b.style.borderRadius = '4px'; b.style.cursor = 'pointer'; const fIdx = evs.findIndex((e) => i>=e.start && i<=e.end); const isEditingThis = (fIdx !== -1 && fIdx === editingIdx); if(fIdx !== -1) { b.style.background = isEditingThis ? selectedColor : evs[fIdx].color; b.style.color = "#000"; if(isEditingThis) b.style.outline = "2px solid #fff"; } b.onclick = () => { if(fIdx !== -1 && currentMode !== 'add') { if(!isEditingThis) { editingIdx = fIdx; const e = evs[fIdx]; startSlot = e.start; endSlot = e.end; selectedColor = e.color; document.getElementById('ev-name').value = e.name; updateBtnUI(); initPalette(); initTime(); return; } } if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); updateBtnUI(); }; t.appendChild(b); } }
