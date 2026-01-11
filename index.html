@@ -44,8 +44,10 @@
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
         #weather-btn { color: #FFFFFF; } #loc-set-btn { color: var(--location-color); } #directions-btn { color: var(--accent-blue); } 
         
+        /* 복사/붙여넣기 버튼 전용 스타일 */
         .cp-container { display: flex; gap: 4px; margin-top: 4px; }
-        .cp-btn { flex: 1; height: 32px; border-radius: 6px; border: 1px solid #444; background: var(--metal-gradient); color: #ccc; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
+        .cp-btn { flex: 1; height: 32px; border-radius: 6px; border: 1px solid #444; background: var(--metal-gradient); color: #ccc; font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .cp-btn:active { transform: scale(0.95); }
         .active-copy { color: #FF9500 !important; border-color: #FF9500 !important; }
         .active-paste { color: #34C759 !important; border-color: #34C759 !important; }
 
@@ -87,8 +89,8 @@
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
                     <div class="cp-container">
-                        <button id="copy-day-btn" class="cp-btn" onclick="copyDayData()">COPY ALL</button>
-                        <button id="paste-day-btn" class="cp-btn" onclick="pasteDayData()" disabled>PASTE ALL</button>
+                        <button id="copy-day-btn" class="cp-btn" onclick="copyFullDayBundle()">COPY ALL</button>
+                        <button id="paste-day-btn" class="cp-btn" onclick="pasteFullDayBundle()" disabled>PASTE ALL</button>
                     </div>
                 </div>
 
@@ -111,13 +113,13 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v71_'; 
+        const storageKeyPrefix = 'smart_v75_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
-        // [단순화된 클립보드] 오직 일정배열과 장소정보만
-        let dayClipboard = null;
+        // [지능형 꾸러미] 일정 배열 + 지역 좌표 + 주소 명칭
+        let fullDayBundle = null;
 
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
         let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; let globalLastAddr = lastLocation.addr;
@@ -174,56 +176,60 @@
         window.openModal = function(d) { currentDay = d; const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(viewDate.getFullYear(), viewDate.getMonth(), d).getDay()]; document.getElementById('modal-date-title').innerText = `${viewDate.getFullYear()}.${viewDate.getMonth()+1}.${d} (${dow})`; document.getElementById('input-modal').style.display = 'flex'; resetToInputMode(); };
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
-        // [순수 복사] 날씨 데이터 제외, 일정과 좌표만 복사
-        function copyDayData() {
+        // [핵심] 전체 복사: 일정 + 좌표 묶음
+        function copyFullDayBundle() {
             const { data } = getStore();
-            const cur = data[currentDay];
-            if (!cur || (cur.events.length === 0 && !cur.weather.coords)) return alert("복사할 내용이 없습니다.");
-            
-            dayClipboard = {
-                events: JSON.parse(JSON.stringify(cur.events || [])),
-                coords: cur.weather?.coords || null,
-                addr: cur.weather?.addr || ""
+            const dData = data[currentDay];
+            if (!dData || (dData.events.length === 0 && !dData.weather.coords)) return alert("복사할 데이터가 없습니다.");
+
+            fullDayBundle = {
+                events: JSON.parse(JSON.stringify(dData.events || [])),
+                coords: dData.weather?.coords || null,
+                addr: dData.weather?.addr || ""
             };
-            alert("하루 일정이 복사되었습니다.");
+            alert("일정과 장소가 복사되었습니다. 다른 날짜에 PASTE 하세요.");
             refreshModalUI();
         }
 
-        // [순수 붙여넣기] 붙여넣은 뒤 기존 로직(confirmMapLocation)의 원리를 이용해 날씨 갱신유도
-        async function pasteDayData() {
-            if (!dayClipboard) return;
+        // [핵심] 전체 붙여넣기: 일정 복제 + 새로운 날씨 호출
+        async function pasteFullDayBundle() {
+            if (!fullDayBundle) return;
             const { key, data } = getStore();
             if (!data[currentDay]) data[currentDay] = { events: [], weather: {} };
 
-            // 1. 일정 붙여넣기
-            data[currentDay].events = [...data[currentDay].events, ...dayClipboard.events];
+            // 1. 일정 데이터 복제
+            data[currentDay].events = [...data[currentDay].events, ...fullDayBundle.events];
 
-            // 2. 장소 정보가 있으면 좌표 주입 후 서버에서 날씨 새로 가져오기
-            if (dayClipboard.coords) {
-                const lat = dayClipboard.coords.lat;
-                const lng = dayClipboard.coords.lng;
-                
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
-                const wData = await res.json();
-                const daily = wData.daily; const curWeather = wData.current_weather;
-                
-                data[currentDay].weather = {
-                    coords: dayClipboard.coords, addr: dayClipboard.addr,
-                    temp: Math.round(curWeather.temperature) + "°C",
-                    min: Math.round(daily.temperature_2m_min[0]) + "°",
-                    max: Math.round(daily.temperature_2m_max[0]) + "°",
-                    pop: daily.precipitation_probability_max[0],
-                    icon: weatherMap[curWeather.weathercode] || "☀️",
-                    wind: curWeather.windspeed > 15 ? "강풍" : "미풍",
-                    dust: curWeather.windspeed > 10 ? "보통" : "좋음",
-                    dustClass: curWeather.windspeed > 10 ? "dust-normal" : "dust-good"
-                };
+            // 2. 장소에 따른 실시간 날씨 갱신
+            if (fullDayBundle.coords) {
+                try {
+                    const lat = fullDayBundle.coords.lat;
+                    const lng = fullDayBundle.coords.lng;
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
+                    const wData = await res.json();
+                    const daily = wData.daily; const cur = wData.current_weather;
+                    
+                    data[currentDay].weather = {
+                        coords: fullDayBundle.coords, addr: fullDayBundle.addr,
+                        temp: Math.round(cur.temperature) + "°C",
+                        min: Math.round(daily.temperature_2m_min[0]) + "°",
+                        max: Math.round(daily.temperature_2m_max[0]) + "°",
+                        pop: daily.precipitation_probability_max[0],
+                        icon: weatherMap[cur.weathercode] || "☀️",
+                        wind: cur.windspeed > 15 ? "강풍" : "미풍",
+                        dust: cur.windspeed > 10 ? "보통" : "좋음",
+                        dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good"
+                    };
+                } catch(e) {
+                    data[currentDay].weather = { coords: fullDayBundle.coords, addr: fullDayBundle.addr };
+                }
             }
 
             localStorage.setItem(key, JSON.stringify(data));
             renderCalendar();
             initTime();
             refreshModalUI();
+            alert("일정과 장소를 붙여넣었으며, 날씨를 최신 예보로 갱신했습니다.");
         }
 
         function refreshModalUI() { 
@@ -240,10 +246,11 @@
             
             const pasteBtn = document.getElementById('paste-day-btn');
             const copyBtn = document.getElementById('copy-day-btn');
-            if(dayClipboard) {
+            if(fullDayBundle) {
                 pasteBtn.disabled = false;
                 pasteBtn.classList.add('active-paste');
-                document.getElementById('copy-day-btn').classList.add('active-copy');
+                const copyBtnEl = document.getElementById('copy-day-btn');
+                if(copyBtnEl) copyBtnEl.classList.add('active-copy');
             }
         }
 
