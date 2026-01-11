@@ -37,7 +37,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 92%; max-width: 440px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
         .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
+        .f-btn { flex: 1; border-radius: 6px; font-size: 0.65rem; font-weight: 800; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; background: var(--metal-gradient); }
         #weather-btn { color: #FFFFFF; } #loc-set-btn { color: var(--location-color); } #directions-btn { color: var(--accent-blue); } 
 
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
@@ -88,15 +88,16 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v60_'; 
+        const storageKeyPrefix = 'smart_v61_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         
-        // [본값 설정] 서울특별시 강남구 좌표 및 명칭
-        let globalLastCoords = { lat: 37.4979, lng: 127.0276 }; 
-        let globalLastAddr = "강남구";
-        let defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" };
+        // [수정] 영구 보존을 위해 로컬스토리지에서 마지막 위치 정보를 불러오거나 없으면 강남구로 초기화
+        const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
+        let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; 
+        let globalLastAddr = lastLocation.addr;
+        let defaultWeather = null; // 실시간으로 가져온 날씨 정보를 담을 변수
 
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
 
@@ -114,22 +115,26 @@
             return parts[parts.length - 1] || "";
         }
 
-        // 초기 실행 시 강남구 날씨 미리 로드 (본값 세팅용)
-        function fetchDefaultWeather() {
-            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${globalLastCoords.lat}&longitude=${globalLastCoords.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
-                .then(res => res.json()).then(data => {
-                    const daily = data.daily; const cur = data.current_weather;
-                    defaultWeather = {
-                        temp: Math.round(cur.temperature) + "°C",
-                        min: Math.round(daily.temperature_2m_min[0]) + "°",
-                        max: Math.round(daily.temperature_2m_max[0]) + "°",
-                        pop: daily.precipitation_probability_max[0],
-                        icon: weatherMap[cur.weathercode] || "☀️",
-                        wind: cur.windspeed > 15 ? "강풍" : "미풍",
-                        dust: cur.windspeed > 10 ? "보통" : "좋음",
-                        dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good"
-                    };
-                });
+        // [핵심] 마지막으로 설정된 위치의 날씨를 실시간으로 가져오는 함수
+        async function fetchLastLocationWeather() {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${globalLastCoords.lat}&longitude=${globalLastCoords.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`);
+                const data = await res.json();
+                const daily = data.daily; const cur = data.current_weather;
+                defaultWeather = {
+                    temp: Math.round(cur.temperature) + "°C",
+                    min: Math.round(daily.temperature_2m_min[0]) + "°",
+                    max: Math.round(daily.temperature_2m_max[0]) + "°",
+                    pop: daily.precipitation_probability_max[0],
+                    icon: weatherMap[cur.weathercode] || "☀️",
+                    wind: cur.windspeed > 15 ? "강풍" : "미풍",
+                    dust: cur.windspeed > 10 ? "보통" : "좋음",
+                    dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good"
+                };
+            } catch (e) {
+                // 수신 실패 시 최소한의 형태 유지
+                defaultWeather = { temp: "--°C", min: "--°", max: "--°", icon: "☀️", pop: 0, wind: "미풍", dust: "좋음", dustClass: "dust-good" };
+            }
         }
 
         function renderCalendar() {
@@ -172,7 +177,7 @@
         
         function resetToInputMode() { currentMode = 'add'; startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; refreshModalUI(); initPalette(); initTime(); updateBtnUI(); }
 
-        // [수정] 날씨 버튼에 본값(강남구) 적용 로직
+        // [수정] 비어있는 창을 누르면 강남구가 아닌 '최종 설정 지역'의 날씨를 보여줌
         function refreshModalUI() { 
             const { data } = getStore(); 
             const directionsBtn = document.getElementById('directions-btn'); 
@@ -181,9 +186,9 @@
             const wBtnL2 = document.getElementById('w-btn-l2');
             const w = data[currentDay]?.weather;
 
-            // 데이터가 있으면 해당 지역 날씨, 없으면 본값(강남구) 날씨 표시
-            const targetW = (w && w.temp) ? w : defaultWeather;
-            const targetAddr = (w && w.addr) ? formatAddress(w.addr) : "강남구(본값)";
+            // 1순위: 해당 날짜 저장 데이터 / 2순위: 실시간 최종 기억 지역 날씨 / 3순위: 기본 하드코드 값
+            const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️"});
+            const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
 
             wBtnL1.innerHTML = `${targetW.icon} ${targetW.temp}`; 
             wBtnL2.innerHTML = `${targetW.min}/${targetW.max}`; 
@@ -192,7 +197,7 @@
             directionsBtn.disabled = !(w && w.coords);
         }
 
-        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : "서울특별시 강남구"); setTimeout(() => map.invalidateSize(), 200); }
+        function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; document.getElementById('addr-display').innerText = "🏠 " + (dayCoords ? data[currentDay].weather.addr : "최근 설정 위치"); setTimeout(() => map.invalidateSize(), 200); }
         
         function onMapClick(e) { 
             const lat = e.latlng.lat, lng = e.latlng.lng; 
@@ -209,13 +214,21 @@
                 }); 
         }
 
-        function confirmMapLocation() { 
+        // [수정] 장소 확정 시 로컬스토리지에 해당 위치를 '최종 설정 지역'으로 영구 저장
+        async function confirmMapLocation() { 
             if(!tempCoords || !tempWeather.temp) return alert("데이터 수신 중입니다. 잠시만 기다려주세요."); 
-            globalLastCoords = tempCoords; globalLastAddr = tempAddr || globalLastAddr; 
+            globalLastCoords = tempCoords; 
+            globalLastAddr = formatAddress(tempAddr) || globalLastAddr; 
+            
+            // 로컬스토리지에 저장 (다음에 비어있는 창 누를 때 사용)
+            localStorage.setItem('last_user_location', JSON.stringify({lat: globalLastCoords.lat, lng: globalLastCoords.lng, addr: globalLastAddr}));
+            
             const { key, data } = getStore(); 
             if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; 
             data[currentDay].weather = { ...tempWeather, coords: tempCoords, addr: tempAddr }; 
             localStorage.setItem(key, JSON.stringify(data)); 
+            
+            await fetchLastLocationWeather(); // 본값 날씨 정보도 갱신
             document.getElementById('map-overlay').style.display = 'none'; 
             renderCalendar(); resetToInputMode(); 
         }
@@ -228,10 +241,10 @@
         function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#5AC8FA', '#FF9500', '#FF2D55', '#FFFFFF'].forEach(c => { const d = document.createElement('div'); d.style.background = c; d.style.height = '32px'; d.style.borderRadius = '5px'; d.style.cursor = 'pointer'; d.style.border = (selectedColor === c) ? "3px solid #fff" : "1px solid #333"; d.onclick = () => { selectedColor = c; initPalette(); if(startSlot !== null) updateTimeUI(); }; p.appendChild(d); }); }
         function saveData() { const name = document.getElementById('ev-name').value; if(!name || startSlot === null) return alert("Details required."); const s = Math.min(startSlot, endSlot === null ? startSlot : endSlot), e = Math.max(startSlot, endSlot === null ? startSlot : endSlot); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; const ev = { name, start: s, end: e, color: selectedColor }; if(editingIdx !== -1) data[currentDay].events[editingIdx] = ev; else data[currentDay].events.push(ev); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; if(currentMode === 'add') { document.getElementById('ev-name').value = ''; editingIdx = -1; } updateBtnUI(); initTime(); }
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); startSlot = null; endSlot = null; editingIdx = -1; document.getElementById('ev-name').value = ''; updateBtnUI(); initTime(); }
-        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || "강남구"; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); resetToInputMode(); } }
+        function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); resetToInputMode(); } }
         function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth() + diff); renderCalendar(); }
         window.closeModal = function() { document.getElementById('input-modal').style.display = 'none'; };
-        window.onload = () => { fetchDefaultWeather(); renderCalendar(); };
+        window.onload = async () => { await fetchLastLocationWeather(); renderCalendar(); };
     </script>
 </body>
 </html>
