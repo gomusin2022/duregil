@@ -11,7 +11,7 @@
             --bg-dark: #0a0a0a; --accent-blue: #0070FF; --text-silver: #f5f5f5;
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
             --location-color: #E0E0E0; --ai-orange: #FF9500;
-            --danger-red: #FF3B30;
+            --danger-red: #FF3B30; /* 복구된 강조 레드 */
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
@@ -100,12 +100,13 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
-                    <div style="margin-top: 4px;">
-                        <button class="m-btn" style="width:100%; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL (STAMP)</button>
+                    <div style="margin-top: 4px; display: flex; gap: 4px;">
+                        <button class="m-btn" style="flex:1; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL</button>
+                        <button class="m-btn" style="flex:1; color:var(--danger-red); height:32px; font-size:0.75rem; border-color:var(--danger-red);" onclick="clearDayData()">CLEAR DAY</button>
                     </div>
                 </div>
                 <div class="function-btns">
-                    <button class="f-btn" style="color:var(--danger-red) !important;" onclick="clearDayData()">CLEAR<br>DAY</button>
+                    <button class="f-btn" style="color:var(--ai-orange) !important;" onclick="alert('AI 비서 기능 준비중')">AI 비서<br>CMD</button>
                     <button id="loc-set-btn" class="f-btn" onclick="openMap()" style="color:#E0E0E0 !important;">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important;">GET<br>DIR</button>
                 </div>
@@ -133,7 +134,7 @@
         let defaultWeather = null;
 
         function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
-        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } return parts[parts.length - 1] || ""; }
+        function formatAddress(fullAddr) { if(!fullAddr) return ""; const parts = fullAddr.replace(/대한민국|South Korea/g, '').split(/[\s,]+/).filter(p => p.length > 1); const priorities = ['구', '군', '읍', '면', '리']; for (let unit of priorities) { const found = parts.find(p => p.endsWith(unit)); if(found) return found; } const dong = parts.find(p => p.endsWith('동')); if(dong) return dong; return parts[parts.length - 1] || ""; }
 
         async function fetchLastLocationWeather() {
             try {
@@ -146,20 +147,22 @@
             } catch (e) {}
         }
 
-        /* [추가] 해당 날짜 데이터 완전 초기화 기능 */
+        /* CLEAR DAY 기능 */
         function clearDayData() {
-            if(!confirm("이 날의 모든 일정과 장소 정보를 삭제할까요?")) return;
+            if(!confirm("이 날의 모든 일정을 초기화할까요?")) return;
             const { key, data } = getStore();
-            delete data[currentDay];
-            localStorage.setItem(key, JSON.stringify(data));
-            renderCalendar();
-            clearCurrentSelection();
+            if(data[currentDay]) {
+                delete data[currentDay];
+                localStorage.setItem(key, JSON.stringify(data));
+                renderCalendar();
+                clearCurrentSelection();
+            }
         }
 
         function activateStampMode() {
             const { data } = getStore();
             const curData = data[currentDay];
-            if (!curData || (curData.events.length === 0)) return alert("복사할 데이터가 없습니다.");
+            if (!curData || (curData.events.length === 0)) return alert("복사 데이터 없음");
             memoEvents = JSON.parse(JSON.stringify(curData.events));
             memoCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
             memoAddr = curData.weather?.addr || "";
@@ -296,7 +299,7 @@
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); clearCurrentSelection(); }
         
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; setTimeout(() => map.invalidateSize(), 200); }
-        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); }
+        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => r.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); }
         function confirmMapLocation() { globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.coords = tempCoords; data[currentDay].weather.addr = tempAddr; localStorage.setItem(key, JSON.stringify(data)); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); clearCurrentSelection(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
         function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
