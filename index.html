@@ -56,8 +56,6 @@
         }
         
         .cp-container { display: flex; gap: 4px; margin-top: 4px; }
-
-        /* [수정 부위] COPY ALL 버튼 색상 보정: 다크메탈 배경 + 오렌지 글씨 */
         #copy-day-btn { 
             width: 100%; height: 32px; border-radius: 6px; border: 1px solid #444; 
             background: linear-gradient(145deg, #2a2a2a, #151515) !important; 
@@ -75,7 +73,7 @@
         #map-container { width:100%; flex:1; border-radius:12px; border:1px solid #444; }
     </style>
 </head>
-<body>
+<body id="main-body">
 
     <div class="header-container">
         <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
@@ -96,7 +94,6 @@
             
             <div style="display: flex; gap: 8px; margin-bottom: 12px; height: 140px;">
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px; background: #000; padding: 4px; border-radius: 6px;"></div>
-                
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
                     <div class="cp-container">
@@ -123,7 +120,7 @@
     <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
 
     <script>
-        const storageKeyPrefix = 'smart_v76_'; 
+        const storageKeyPrefix = 'smart_v800_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -155,44 +152,64 @@
             memoCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
             memoAddr = curData.weather?.addr || "";
             isStampMode = true;
-            document.body.classList.add('stamp-active');
+            document.body.classList.add('stamp-mode-active');
             document.getElementById('copy-status-bar').style.display = 'flex';
             closeModal();
         }
 
         function deactivateStampMode() {
             isStampMode = false;
-            document.body.classList.remove('stamp-active');
+            document.body.classList.remove('stamp-mode-active');
             document.getElementById('copy-status-bar').style.display = 'none';
         }
 
         window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) deactivateStampMode(); });
 
-        function handleCalendarAction(d) {
-            if (isStampMode) executeStampRecombineEngine(d);
+        function handleDayAction(d) {
+            if (isStampMode) executeStampPaste(d);
             else openModal(d);
         }
 
-        async function executeStampRecombineEngine(targetDay) {
+        // [핵심 보정] 비동기 처리: 일정 먼저 저장 -> 날씨는 나중에 업데이트
+        async function executeStampPaste(targetDay) {
             const { key, data } = getStore();
             if (!data[targetDay]) data[targetDay] = { events: [], weather: {} };
+            
+            // 1. 일정과 장소 이름은 즉시 주입 (기존 날씨는 '로딩중' 상태로 임시 보존)
             data[targetDay].events = JSON.parse(JSON.stringify(memoEvents));
-            data[targetDay].weather = { coords: memoCoords, addr: memoAddr };
+            data[targetDay].weather = { 
+                coords: memoCoords, 
+                addr: memoAddr,
+                icon: "⏳", temp: "..", min: "..", max: "..", pop: 0, wind: "로딩", dust: "중" 
+            };
+            
             localStorage.setItem(key, JSON.stringify(data));
-            renderCalendar();
+            renderCalendar(); // 즉시 화면에 일정 막대기 표출
+
+            // 2. 백그라운드에서 날씨 데이터 수신
             if (memoCoords) {
                 const { lat, lng } = memoCoords;
-                const targetFullDate = `${viewDate.getFullYear()}-${(viewDate.getMonth()+1).toString().padStart(2,'0')}-${targetDay.toString().padStart(2,'0')}`;
-                try {
-                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`);
-                    const w = await res.json();
+                const targetFullDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+                
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto&start_date=${targetFullDate}&end_date=${targetFullDate}`)
+                .then(res => res.json())
+                .then(w => {
+                    const daily = w.daily; const cur = w.current_weather;
                     data[targetDay].weather = {
                         coords: memoCoords, addr: memoAddr,
-                        temp: Math.round(w.current_weather.temperature) + "°C", min: Math.round(w.daily.temperature_2m_min[0]) + "°", max: Math.round(w.daily.temperature_2m_max[0]) + "°", pop: w.daily.precipitation_probability_max[0], icon: weatherMap[w.current_weather.weathercode] || "☀️", wind: w.current_weather.windspeed > 15 ? "강풍" : "미풍", dust: w.current_weather.windspeed > 10 ? "보통" : "좋음", dustClass: w.current_weather.windspeed > 10 ? "dust-normal" : "dust-good"
+                        temp: Math.round(cur.temperature) + "°C",
+                        min: Math.round(daily.temperature_2m_min[0]) + "°",
+                        max: Math.round(daily.temperature_2m_max[0]) + "°",
+                        pop: daily.precipitation_probability_max[0],
+                        icon: weatherMap[cur.weathercode] || "☀️",
+                        wind: cur.windspeed > 15 ? "강풍" : "미풍",
+                        dust: cur.windspeed > 10 ? "보통" : "좋음",
+                        dustClass: cur.windspeed > 10 ? "dust-normal" : "dust-good"
                     };
                     localStorage.setItem(key, JSON.stringify(data));
-                    renderCalendar(); 
-                } catch(e) { console.log("Sync failed"); }
+                    renderCalendar(); // 날씨 데이터 도착 시 해당 칸만 리프레시
+                })
+                .catch(e => console.log("Weather delayed..."));
             }
         }
 
@@ -209,8 +226,8 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dData.weather || {}; let locName = w.addr ? formatAddress(w.addr) : "";
-                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div><div class="w-line" style="font-size:0.95rem;font-weight:800;letter-spacing:-1px;"><span>${w.wind}</span> <span class="${w.dustClass}">${w.dust}</span></div></div>` : "";
-                html += `<div class="cal-day" onclick="handleCalendarAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
+                let weatherHtml = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;letter-spacing:-1px;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);gap:4px;"><span class="w-loc-inline">${locName}</span><span>${w.icon}</span><span>${w.pop}%</span></div><div class="w-line" style="font-size:0.95rem;font-weight:800;letter-spacing:-1px;"><span>${w.wind}</span> <span class="${w.dustClass || ''}">${w.dust}</span></div></div>` : "";
+                html += `<div class="cal-day" onclick="handleDayAction(${d})"><div class="day-num">${d}</div>${weatherHtml}<div class="time-bar">${barHtml}</div></div>`;
             }
             const remaining = (new Date(year, month + 1, 0).getDay() === 6) ? 0 : 6 - new Date(year, month + 1, 0).getDay();
             for(let d = 1; d <= remaining; d++) html += `<div class="cal-day next-month"><div class="day-num">${d}</div></div>`;
@@ -241,7 +258,7 @@
             const { data } = getStore(); 
             const directionsBtn = document.getElementById('directions-btn'); const locBtn = document.getElementById('loc-set-btn'); 
             const w = data[currentDay]?.weather;
-            const targetW = (w && w.temp) ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
+            const targetW = (w && w.temp && w.temp !== "..") ? w : (defaultWeather || {temp:"--°C", min:"--", max:"--", icon:"☀️", pop:0});
             const targetAddr = (w && w.addr) ? formatAddress(w.addr) : globalLastAddr;
             locBtn.innerHTML = `${targetAddr}<br>SET`; 
             const modalWeatherBox = document.getElementById('modal-weather-info');
