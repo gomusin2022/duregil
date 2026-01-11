@@ -34,24 +34,20 @@
         .w-line { display: flex; justify-content: flex-end; align-items: center; white-space: nowrap; height: 1.2rem; } 
         .w-loc-inline { color: var(--location-color); font-size: 0.85rem; font-weight: 900; margin-right: 5px; opacity: 0.8; }
 
-        /* [변경] 타임바 24개로 확장 */
-        .time-bar { display: grid; grid-template-columns: repeat(24, 1fr); gap: 0.5px; height: 10px; background: #151515; margin-top: auto; border-radius: 1px; border: 1px solid #222; }
+        .time-bar { display: grid; grid-template-columns: repeat(24, 1fr); gap: 0.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 1px; }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #111; width: 95%; max-width: 480px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
-
-        .ai-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; justify-content: center; align-items: center; }
-        .ai-content { background: #111; width: 90%; max-width: 400px; padding: 20px; border: 2px solid var(--ai-orange); border-radius: 15px; }
+        /* 모달 공통 */
+        .modal, .ai-modal, #map-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content, .ai-content { background: #111; width: 95%; max-width: 480px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
+        
+        #map-overlay { z-index: 4000; background: #000; flex-direction: column; padding: 10px; box-sizing: border-box; }
+        #map-container { width: 100%; flex: 1; border-radius: 12px; border: 1px solid #444; margin: 10px 0; }
 
         .f-btn { flex: 1; border-radius: 6px; font-size: 0.7rem; font-weight: 900; border: 1px solid #444; cursor: pointer; background: var(--metal-gradient); color: #fff; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; }
-        
-        /* [변경] 시간 선택기 24개 배치 */
-        #time-picker { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 8px; background: #000; padding: 4px; border-radius: 6px; }
+        #time-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; background: #000; padding: 6px; border-radius: 6px; }
 
         .stamp-mode-active { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><text y='20' font-size='20'>💰</text></svg>") 10 10, cell !important; }
-        #map-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.98); z-index:2000; flex-direction:column; padding:15px; }
-        #map-container { width:100%; flex:1; border-radius:12px; }
     </style>
 </head>
 <body id="main-body">
@@ -70,7 +66,7 @@
 
     <div id="ai-modal" class="ai-modal">
         <div class="ai-content">
-            <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서 (24H 엔진)</h3>
+            <h3 style="color:var(--ai-orange); margin-top:0;">🤖 AI 지능형 비서 (24H)</h3>
             <textarea id="ai-command" style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:12px; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" rows="4" placeholder="예: 매주 금요일 클래식기타 레슨 오전10시부터 오후1시까지"></textarea>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button class="m-btn" onclick="processAICommand()" style="background:var(--ai-orange); color:#000;">명령 실행</button>
@@ -90,12 +86,12 @@
                 <div id="color-palette" style="display: grid; grid-template-columns: repeat(3, 1fr); width: 85px; gap: 4px;"></div>
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none;" placeholder="내용 입력..."></textarea>
-                    <button class="m-btn" style="width:100%; color:var(--ai-orange); height:32px; font-size:0.75rem; margin-top:4px;" onclick="activateStampMode()">COPY ALL (STAMP)</button>
+                    <button class="m-btn" style="width:100%; color:var(--ai-orange); height:32px; font-size:0.75rem; margin-top:4px;" onclick="activateStampMode()">COPY ALL</button>
                 </div>
                 <div class="function-btns" style="display:flex; flex-direction:column; gap:4px; width:100px;">
-                    <button class="f-btn" onclick="openAI()" style="color:var(--ai-orange) !important; height:45px;">AI 비서</button>
-                    <button id="loc-set-btn" class="f-btn" onclick="openMap()" style="height:45px;">LOC SET</button>
-                    <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important; height:45px;">GET DIR</button>
+                    <button class="f-btn" onclick="openAI()" style="color:var(--ai-orange) !important;">AI 비서</button>
+                    <button id="loc-set-btn" class="f-btn" onclick="openMap()">LOC SET</button>
+                    <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important;">GET DIR</button>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
@@ -107,19 +103,33 @@
         </div>
     </div>
 
-    <div id="map-overlay"><div id="map-container" style="height:80%; border-radius:12px;"></div><button class="m-btn" style="width:100%; margin-top:10px;" onclick="confirmMapLocation()">CONFIRM</button></div>
+    <div id="map-overlay">
+        <div id="addr-display" style="color:#fff; font-weight:bold; text-align:center;">주소를 선택하세요</div>
+        <div id="map-container"></div>
+        <div style="display:flex; gap:10px; width:100%; max-width:480px;">
+            <button class="m-btn" style="flex:1" onclick="closeMap()">CANCEL</button>
+            <button class="m-btn" style="flex:1; background:var(--accent-blue)" onclick="confirmMapLocation()">CONFIRM</button>
+        </div>
+    </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v24h_'; 
+        const storageKeyPrefix = 'smart_v24h_v2_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
+        let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
         let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false;
+        
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
-        let globalLastCoords = { lat: 37.4979, lng: 127.0276 }; let globalLastAddr = "강남구"; let defaultWeather = null;
+        let globalLastCoords = { lat: 37.4979, lng: 127.0276 }; 
+        let globalLastAddr = "강남구"; 
+        let defaultWeather = null;
 
-        function getStore() { const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; }
+        function getStore() { 
+            const key = storageKeyPrefix + viewDate.getFullYear() + '_' + (viewDate.getMonth() + 1); 
+            return { key, data: JSON.parse(localStorage.getItem(key) || '{}') }; 
+        }
 
-        // [24시간 지능형 비서 엔진]
+        // [AI 비서 엔진]
         async function processAICommand() {
             const cmd = document.getElementById('ai-command').value;
             if(!cmd) return;
@@ -128,10 +138,9 @@
             for(let key in days) { if(cmd.includes(key)) targetDayNum = days[key]; }
 
             function parseHour(text) {
-                let h = 0;
                 const match = text.match(/(\d+)시/);
                 if(!match) return null;
-                h = parseInt(match[1]);
+                let h = parseInt(match[1]);
                 if(text.includes("오후") && h < 12) h += 12;
                 if(text.includes("오전") && h === 12) h = 0;
                 return h;
@@ -165,6 +174,55 @@
         function openAI() { closeModal(); document.getElementById('ai-modal').style.display = 'flex'; }
         function closeAI() { document.getElementById('ai-modal').style.display = 'none'; }
 
+        // [위치 설정 엔진 - 먹통 방지 보정]
+        function openMap() {
+            closeModal(); closeAI(); // 기존 모달 모두 닫기
+            document.getElementById('map-overlay').style.display = 'flex';
+            
+            const targetLat = globalLastCoords.lat;
+            const targetLng = globalLastCoords.lng;
+
+            setTimeout(() => {
+                if (!map) {
+                    map = L.map('map-container').setView([targetLat, targetLng], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    map.on('click', (e) => {
+                        const { lat, lng } = e.latlng;
+                        if (marker) map.removeLayer(marker);
+                        marker = L.marker([lat, lng]).addTo(map);
+                        tempCoords = { lat, lng };
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                            .then(res => res.json()).then(d => {
+                                tempAddr = d.display_name;
+                                document.getElementById('addr-display').innerText = "📍 " + tempAddr.split(',').slice(0,2).join(',');
+                            });
+                    });
+                } else {
+                    map.setView([targetLat, targetLng], 13);
+                }
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([targetLat, targetLng]).addTo(map);
+                map.invalidateSize();
+            }, 200);
+        }
+
+        function closeMap() { document.getElementById('map-overlay').style.display = 'none'; openModal(currentDay); }
+
+        async function confirmMapLocation() {
+            if(tempCoords) {
+                globalLastCoords = tempCoords;
+                globalLastAddr = tempAddr;
+                const { key, data } = getStore();
+                if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+                data[currentDay].weather.coords = tempCoords;
+                data[currentDay].weather.addr = tempAddr;
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+            document.getElementById('map-overlay').style.display = 'none';
+            renderCalendar();
+            openModal(currentDay);
+        }
+
         function renderCalendar() {
             const { data } = getStore(); const container = document.getElementById('main-calendar');
             const year = viewDate.getFullYear(), month = viewDate.getMonth();
@@ -175,20 +233,32 @@
             for(let i=0; i<first; i++) html += `<div class="cal-day prev-month"></div>`;
             for(let d=1; d<=last; d++) {
                 const dD = data[d] || { events: [], weather: {} };
-                // 24개 타임바 렌더링
-                let bH = Array(24).fill(0).map((_,i)=>{ const ev = dD.events.find(e => i>=e.start && i<e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
+                let bH = Array(24).fill(0).map((_,i)=>{ const ev = (dD.events||[]).find(e => i>=e.start && i<e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let w = dD.weather || {};
-                let wH = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);"><span class="w-loc-inline">${w.addr.substring(0,3)}</span><span>${w.icon}</span></div></div>` : "";
+                let locStr = w.addr ? w.addr.split(' ').slice(-1) : "";
+                let wH = w.temp ? `<div class="weather-badge-main"><div class="w-line"><span style="color:#fff;">${w.min}/${w.max}</span></div><div class="w-line" style="color:var(--accent-blue);"><span class="w-loc-inline">${locStr}</span><span>${w.icon}</span></div></div>` : "";
                 html += `<div class="cal-day" onclick="handleDayAction(${d})"><div class="day-num">${d}</div>${wH}<div class="time-bar">${bH}</div></div>`;
             }
             container.innerHTML = html; container.style.gridTemplateRows = `18px repeat(6, 1fr)`;
         }
 
+        window.openModal = function(d) { 
+            currentDay = d; 
+            document.getElementById('modal-date-title').innerText = `${viewDate.getMonth()+1}.${d}`; 
+            document.getElementById('input-modal').style.display = 'flex'; 
+            startSlot = null; endSlot = null; initTime(); initPalette(); 
+        };
+        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
+        function handleDayAction(d) { if(isStampMode) executeStampPaste(d); else openModal(d); }
+        function activateStampMode() { isStampMode = true; document.body.classList.add('stamp-mode-active'); closeModal(); }
+        function deactivateStampMode() { isStampMode = false; document.body.classList.remove('stamp-mode-active'); }
+        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth()+diff); renderCalendar(); }
+        
         function initTime() {
             const t = document.getElementById('time-picker'); t.innerHTML = '';
             for(let i=0; i<24; i++) {
                 const b = document.createElement('div'); b.innerText = i; b.style.padding = '5px 0'; b.style.textAlign = 'center'; b.style.fontSize = '0.65rem'; b.style.background = '#1a1a1a'; b.style.border = '1px solid #333'; b.style.cursor = 'pointer';
-                b.onclick = () => { if(startSlot === null || (startSlot !== null && endSlot !== null)) { startSlot = i; endSlot = null; } else { endSlot = i; } updateTimeUI(); };
+                b.onclick = () => { if(startSlot === null) startSlot = i; else endSlot = i; updateTimeUI(); };
                 t.appendChild(b);
             }
         }
@@ -200,18 +270,23 @@
                 b.style.background = (startSlot !== null && i >= s && i <= e) ? selectedColor : '#1a1a1a';
             });
         }
-        // [기존 함수들 유지...]
-        function handleDayAction(d) { if(isStampMode) executeStampPaste(d); else openModal(d); }
-        async function executeStampPaste(d) { /* ...연속도장 로직... */ }
-        function activateStampMode() { isStampMode = true; document.body.classList.add('stamp-mode-active'); closeModal(); }
-        function deactivateStampMode() { isStampMode = false; document.body.classList.remove('stamp-mode-active'); }
-        window.openModal = function(d) { currentDay = d; document.getElementById('modal-date-title').innerText = `${viewDate.getMonth()+1}.${d}`; document.getElementById('input-modal').style.display = 'flex'; startSlot = null; endSlot = null; initTime(); initPalette(); };
-        function closeModal() { document.getElementById('input-modal').style.display = 'none'; }
-        function handleModeBtn(m) { if(m==='add' && startSlot!==null) { const {key,data}=getStore(); if(!data[currentDay]) data[currentDay]={events:[],weather:{}}; data[currentDay].events.push({name:document.getElementById('ev-name').value, start:Math.min(startSlot,endSlot), end:Math.max(startSlot,endSlot), color:selectedColor}); localStorage.setItem(key,JSON.stringify(data)); renderCalendar(); closeModal(); } }
-        function initPalette() { const p = document.getElementById('color-palette'); p.innerHTML = ''; ['#0070FF','#FF3B30','#34C759','#FFCC00','#AF52DE','#FF9500'].forEach(c=>{ const d=document.createElement('div'); d.style.background=c; d.style.height='30px'; d.style.borderRadius='4px'; d.onclick=()=>{selectedColor=c; initPalette();}; p.appendChild(d); }); }
-        function changeMonth(diff) { viewDate.setMonth(viewDate.getMonth()+diff); renderCalendar(); }
-        function openMap() { document.getElementById('map-overlay').style.display='flex'; }
-        function confirmMapLocation() { document.getElementById('map-overlay').style.display='none'; }
+        function initPalette() {
+            const p = document.getElementById('color-palette'); p.innerHTML = '';
+            ['#0070FF', '#FF3B30', '#34C759', '#FFCC00', '#AF52DE', '#FF9500'].forEach(c => {
+                const d = document.createElement('div'); d.style.background = c; d.style.height = '30px'; d.style.borderRadius = '4px'; d.style.border = selectedColor === c ? '2px solid white' : '1px solid #333';
+                d.onclick = () => { selectedColor = c; initPalette(); };
+                p.appendChild(d);
+            });
+        }
+        function handleModeBtn(m) {
+            if(m === 'add' && startSlot !== null) {
+                const { key, data } = getStore();
+                if(!data[currentDay]) data[currentDay] = { events: [], weather: {} };
+                data[currentDay].events.push({ name: document.getElementById('ev-name').value, start: Math.min(startSlot, endSlot), end: Math.max(startSlot, endSlot), color: selectedColor });
+                localStorage.setItem(key, JSON.stringify(data));
+                renderCalendar(); closeModal();
+            }
+        }
         window.onload = renderCalendar;
     </script>
 </body>
