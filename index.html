@@ -26,15 +26,28 @@
         
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
+        /* [수정] 지역명 위치 설정: 날씨 2번째 줄 높이 정렬 및 여백 중앙 배치 */
         .day-location-center {
-            position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--location-color); font-size: 1rem; font-weight: 900;
-            width: 95%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            z-index: 1; pointer-events: none; opacity: 0.9;
+            position: absolute; 
+            bottom: 31px; /* 날씨 2번째 줄(아이콘 라인) 높이와 맞춤 */
+            left: 45%; /* 날씨 영역을 제외한 왼쪽 여백의 중앙 */
+            transform: translateX(-50%);
+            color: var(--location-color); 
+            font-size: 0.95rem; 
+            font-weight: 900;
+            width: 75%; 
+            text-align: center; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            z-index: 1; 
+            pointer-events: none; 
+            opacity: 0.9;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); /* 가독성을 위한 그림자 */
         }
 
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.3; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
-        .w-line { white-space: nowrap; margin-bottom: 2px; }
+        .w-line { white-space: nowrap; height: 1.3rem; margin-bottom: 2px; } /* 라인 높이 명시적 고정 */
         .w-temp { color: #fff; letter-spacing: -1px; }
         .w-icon-pop { color: var(--accent-blue); display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
         .w-extra { font-size: 0.95rem; font-weight: 800; letter-spacing: -1px; }
@@ -123,28 +136,16 @@
             return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
         }
 
-        // [주소 가공 엔진 - 국장님 요청 한 단어 버전]
         function formatAddress(fullAddr) {
             if(!fullAddr) return "";
             let cleanAddr = fullAddr.replace(/대한민국|South Korea|\d{5}/g, '').trim();
             const parts = cleanAddr.split(/[\s,]+/).reverse(); 
-            
-            // 뒤에서부터(가장 작은 단위부터) 탐색하여 딱 '하나'만 선택
             for (let part of parts) {
-                // 동, 면, 읍, 리 단위 우선 (시골 및 상세 지명)
-                if (part.endsWith('동') || part.endsWith('면') || part.endsWith('읍') || part.endsWith('리')) {
-                    return part;
-                }
-                // 그다음 구, 군 단위 (도시 지명)
-                if (part.endsWith('구') || part.endsWith('군')) {
-                    return part;
-                }
-                // 광역 단위가 아닌 일반 '시' (예: 예산군 예산읍 -> 예산읍이 먼저 걸리지만, 혹시 시 단위만 있을 때)
-                if (part.endsWith('시') && !part.includes('특별') && !part.includes('광역')) {
-                    return part;
-                }
+                if (part.endsWith('동') || part.endsWith('면') || part.endsWith('읍') || part.endsWith('리')) return part;
+                if (part.endsWith('구') || part.endsWith('군')) return part;
+                if (part.endsWith('시') && !part.includes('특별') && !part.includes('광역')) return part;
             }
-            return parts[0]; // 아무것도 안 걸리면 가장 마지막 조각 반환
+            return parts[0];
         }
 
         function renderCalendar() {
@@ -167,10 +168,16 @@
                 const dData = data[d] || { events: [], weather: {} };
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let wHtml = dData.weather?.temp ? `<div class="weather-badge-main"><div class="w-line w-temp">${dData.weather.min}/${dData.weather.max}</div><div class="w-line w-icon-pop"><span>${dData.weather.icon}</span><span>${dData.weather.pop}%</span></div><div class="w-line w-extra"><span>${dData.weather.wind}</span> <span class="${dData.weather.dustClass}">${dData.weather.dust}</span></div></div>` : "";
+                
                 let locName = dData.weather?.addr ? formatAddress(dData.weather.addr) : "";
                 let locHtml = locName ? `<div class="day-location-center">${locName}</div>` : "";
 
-                html += `<div class="cal-day" onclick="openModal(${d})"><div class="day-num">${d}</div>${locHtml}${wHtml}<div class="time-bar">${barHtml}</div></div>`;
+                html += `<div class="cal-day" onclick="openModal(${d})">
+                            <div class="day-num">${d}</div>
+                            ${locHtml}
+                            ${wHtml}
+                            <div class="time-bar">${barHtml}</div>
+                         </div>`;
             }
 
             const remaining = (lastDay === 6) ? 0 : 6 - lastDay;
@@ -239,11 +246,10 @@
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
                 .then(res => res.json()).then(data => {
                     const daily = data.daily; const cur = data.current_weather;
-                    const windSpeed = cur.windspeed;
                     tempWeather = {
                         temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°",
-                        pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: windSpeed > 15 ? "강풍" : "미풍",
-                        dust: windSpeed > 20 ? "나쁨" : windSpeed > 10 ? "보통" : "좋음", dustClass: windSpeed > 20 ? "dust-bad" : windSpeed > 10 ? "dust-normal" : "dust-good"
+                        pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍",
+                        dust: cur.windspeed > 20 ? "나쁨" : cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 20 ? "dust-bad" : cur.windspeed > 10 ? "dust-normal" : "dust-good"
                     };
                     document.getElementById('temp-display').innerText = tempWeather.temp;
                 });
