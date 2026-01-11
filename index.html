@@ -22,11 +22,11 @@
         .calendar-container { flex: 1; margin-top: 5px; display: flex; flex-direction: column; background: #000; border: 1px solid #222; overflow: hidden; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); height: 100%; gap: 1px; background: #222; }
         .cal-day { background: #0a0a0a; padding: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 0; overflow: hidden; }
-        
         .cal-day.prev-month, .cal-day.next-month { background: #050505; opacity: 0.25; pointer-events: none; }
+        
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
 
-        /* 달력 중앙 장소 표시 */
+        /* 달력 중앙 장소 표시 스타일 */
         .day-location-center {
             position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%);
             color: var(--location-color); font-size: 0.9rem; font-weight: 800;
@@ -104,7 +104,7 @@
 
     <div id="map-overlay">
         <div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;">
-            <div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div>
+            <div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">지도를 클릭하여 장소를 선택하세요.</div></div>
             <div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div>
         </div>
         <div id="map-container"></div>
@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const storageKeyPrefix = 'smart_v44_'; 
+        const storageKeyPrefix = 'smart_v46_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
@@ -130,23 +130,23 @@
             return { key, data: JSON.parse(localStorage.getItem(key) || '{}') };
         }
 
-        // [핵심] 주소 가공 함수 (구, 군, 시, 면 단위만 추출)
+        // [국장님 하사 주소 가공 엔진]
         function formatAddress(fullAddr) {
             if(!fullAddr) return "";
-            // 주소를 공백으로 분리
-            const parts = fullAddr.split(' ');
+            let cleanAddr = fullAddr.replace(/대한민국|South Korea|\d{5}/g, '').trim();
+            const parts = cleanAddr.split(/[\s,]+/).reverse(); 
             let filtered = [];
-            
-            // 시/도 단위(서울특별시, 경기도 등)는 제외하고 나머지만 검사
-            // 구, 군, 시, 면, 읍 등의 키워드가 포함된 단어만 추출
-            parts.forEach(part => {
-                if (part.endsWith('구') || part.endsWith('군') || (part.endsWith('시') && part.length > 2) || part.endsWith('면') || part.endsWith('읍')) {
-                    filtered.push(part);
+            for (let part of parts) {
+                if (part.endsWith('구') || part.endsWith('군') || 
+                    part.endsWith('면') || part.endsWith('읍') || 
+                    part.endsWith('동') || (part.endsWith('시') && part.length > 2)) {
+                    if (!part.includes('특별') && !part.includes('광역')) {
+                        filtered.push(part);
+                    }
                 }
-            });
-
-            // 만약 필터링된 결과가 없으면 마지막 단어라도 반환 (예: 단일 '서울시' 등)
-            return filtered.length > 0 ? filtered.join(' ') : parts[parts.length - 1];
+                if (filtered.length >= 2) break;
+            }
+            return filtered.length > 0 ? filtered.reverse().join(' ') : parts[0];
         }
 
         function renderCalendar() {
@@ -170,7 +170,7 @@
                 let barHtml = Array(12).fill(0).map((_,i)=>{ const ev = (dData.events||[]).find(e => i>=e.start && i<=e.end); return `<div style="background:${ev?ev.color:'#151515'}"></div>`; }).join('');
                 let wHtml = dData.weather?.temp ? `<div class="weather-badge-main"><div class="w-line w-temp">${dData.weather.min}/${dData.weather.max}</div><div class="w-line w-icon-pop"><span>${dData.weather.icon}</span><span>${dData.weather.pop}%</span></div><div class="w-line w-extra"><span>${dData.weather.wind}</span> <span class="${dData.weather.dustClass}">${dData.weather.dust}</span></div></div>` : "";
                 
-                // [수정] 가공된 주소 적용
+                // 가공 엔진 적용
                 let locName = dData.weather?.addr ? formatAddress(dData.weather.addr) : "";
                 let locHtml = locName ? `<div class="day-location-center">${locName}</div>` : "";
 
@@ -207,10 +207,7 @@
                 directionsBtn.disabled = false;
                 document.getElementById('w-btn-l1').innerHTML = `${data[currentDay].weather.icon} ${data[currentDay].weather.temp}`;
                 document.getElementById('w-btn-l2').innerHTML = `${data[currentDay].weather.min}/${data[currentDay].weather.max}`;
-                
-                // [수정] 버튼에도 가공된 주소 적용
-                const locName = formatAddress(data[currentDay].weather.addr);
-                locBtn.innerHTML = `${locName}<br>SET`;
+                locBtn.innerHTML = `${formatAddress(data[currentDay].weather.addr)}<br>SET`;
             } else {
                 directionsBtn.disabled = true;
                 document.getElementById('w-btn-l1').innerText = "WEATHER"; document.getElementById('w-btn-l2').innerText = "INFO";
@@ -242,18 +239,15 @@
             marker = L.marker([lat, lng]).addTo(map);
             tempCoords = { lat, lng };
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json()).then(data => { 
-                    // 원본 주소 저장
-                    tempAddr = data.display_name; 
-                    document.getElementById('addr-display').innerText = "🏠 " + tempAddr; 
-                });
+                .then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; });
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=auto`)
                 .then(res => res.json()).then(data => {
                     const daily = data.daily; const cur = data.current_weather;
+                    const windSpeed = cur.windspeed;
                     tempWeather = {
                         temp: Math.round(cur.temperature) + "°C", min: Math.round(daily.temperature_2m_min[0]) + "°", max: Math.round(daily.temperature_2m_max[0]) + "°",
-                        pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: cur.windspeed > 15 ? "강풍" : "미풍",
-                        dust: cur.windspeed > 20 ? "나쁨" : cur.windspeed > 10 ? "보통" : "좋음", dustClass: cur.windspeed > 20 ? "dust-bad" : cur.windspeed > 10 ? "dust-normal" : "dust-good"
+                        pop: daily.precipitation_probability_max[0], icon: weatherMap[cur.weathercode] || "☀️", wind: windSpeed > 15 ? "강풍" : "미풍",
+                        dust: windSpeed > 20 ? "나쁨" : windSpeed > 10 ? "보통" : "좋음", dustClass: windSpeed > 20 ? "dust-bad" : windSpeed > 10 ? "dust-normal" : "dust-good"
                     };
                     document.getElementById('temp-display').innerText = tempWeather.temp;
                 });
