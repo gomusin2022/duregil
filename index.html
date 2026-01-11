@@ -11,7 +11,7 @@
             --bg-dark: #0a0a0a; --accent-blue: #0070FF; --text-silver: #f5f5f5;
             --metal-gradient: linear-gradient(145deg, #444444, #222222);
             --location-color: #E0E0E0; --ai-orange: #FF9500;
-            --danger-red: #FF3B30; /* 복구된 강조 레드 */
+            --danger-red: #FF3B30;
         }
         body { background-color: var(--bg-dark); color: var(--text-silver); font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
         
@@ -44,10 +44,15 @@
         .cal-day:active { background: #1a1a1a; }
         .cal-day.prev-month, .cal-day.next-month { opacity: 0; pointer-events: none; }
         
+        /* 스탬프 모드 활성화 시 커서 및 테두리 효과 */
         .stamp-mode-active { 
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>💰</text><rect y='35' width='50' height='16' rx='4' fill='orange'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='black'>PASTE</text></svg>") 10 10, cell !important;
         }
-        .stamp-mode-active .cal-day:not(.prev-month):not(.next-month) { border: 1px dashed #FF9500; }
+        .clear-mode-active { 
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><text y='30' font-size='24'>🗑️</text><rect y='35' width='50' height='16' rx='4' fill='red'/><text x='6' y='47' font-family='Arial' font-size='10' font-weight='bold' fill='white'>ERASE</text></svg>") 10 10, cell !important;
+        }
+        .stamp-mode-active .cal-day:not(.prev-month):not(.next-month),
+        .clear-mode-active .cal-day:not(.prev-month):not(.next-month) { border: 1px dashed var(--ai-orange); }
 
         .day-num { font-size: 1.2rem; font-weight: 800; color: #fff; position: absolute; top: 8px; left: 8px; z-index: 2; }
         .weather-badge-main { align-self: flex-end; text-align: right; font-size: 1.1rem; line-height: 1.2; font-weight: 900; padding-right: 2px; width: 100%; z-index: 2; }
@@ -56,9 +61,6 @@
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #111; width: 95%; max-width: 460px; padding: 12px; border: 1px solid #333; border-radius: 12px; }
-        
-        .function-btns { display: flex; flex-direction: column; width: 105px; gap: 4px; }
-        .f-btn { flex: 1; border-radius: 6px; font-size: 0.7rem; font-weight: 900; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1; background: var(--metal-gradient); text-shadow: 1px 1px 2px #000; }
         
         .time-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5px; height: 8px; background: #151515; margin-top: auto; border-radius: 2px; }
         .m-btn { background: var(--metal-gradient); color: white; height: 44px; border-radius: 8px; border: 1px solid #444; cursor: pointer; font-weight: 800; font-size: 0.85rem; }
@@ -75,7 +77,7 @@
 <body id="main-body">
 
     <div class="header-container">
-        <div id="copy-status-bar" onclick="deactivateStampMode()">[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)</div>
+        <div id="copy-status-bar" onclick="deactivateSpecialMode()">[모드 활성] 달력을 클릭해 작업을 수행하세요. (종료: ESC)</div>
         <div class="header-title">SMART AI SCHEDULER</div>
         <div class="header-right-zone">
             <div class="nav-container">
@@ -101,12 +103,12 @@
                 <div style="flex:1; display:flex; flex-direction:column;">
                     <textarea id="ev-name" style="flex:1; background:#000; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; resize:none; font-size:1rem;" placeholder="내용 입력..."></textarea>
                     <div style="margin-top: 4px; display: flex; gap: 4px;">
-                        <button class="m-btn" style="flex:1; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL</button>
-                        <button class="m-btn" style="flex:1; color:var(--danger-red); height:32px; font-size:0.75rem; border-color:var(--danger-red);" onclick="clearDayData()">CLEAR DAY</button>
+                        <button class="m-btn" style="flex: 1; color:var(--ai-orange); height:32px; font-size:0.75rem; border-color:var(--ai-orange);" onclick="activateStampMode()">COPY ALL</button>
+                        <button class="m-btn" style="flex: 1; color:var(--danger-red); height:32px; font-size:0.75rem; border-color:var(--danger-red);" onclick="activateClearMode()">CLEAR DAY</button>
                     </div>
                 </div>
-                <div class="function-btns">
-                    <button class="f-btn" style="color:var(--ai-orange) !important;" onclick="alert('AI 비서 기능 준비중')">AI 비서<br>CMD</button>
+                <div class="function-btns" style="display: flex; flex-direction: column; width: 105px; gap: 4px;">
+                    <button class="f-btn" style="color:var(--ai-orange) !important;" onclick="alert('AI 비서 기능 준비 중')">AI 비서<br>CMD</button>
                     <button id="loc-set-btn" class="f-btn" onclick="openMap()" style="color:#E0E0E0 !important;">LOCATION<br>SET</button>
                     <button id="directions-btn" class="f-btn" onclick="goDirections()" style="color:#5AC8FA !important;">GET<br>DIR</button>
                 </div>
@@ -120,14 +122,12 @@
         </div>
     </div>
 
-    <div id="map-overlay"><div style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:15px; border-left:5px solid var(--accent-blue); display:flex; justify-content:space-between; align-items:center;"><div style="color:#fff;"><div id="addr-display" style="font-weight:800; font-size:1.1rem;">주소를 설정하세요.</div></div><div id="temp-display" style="color:var(--accent-blue); font-size:1.8rem; font-weight:900;">--°C</div></div><div id="map-container"></div><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="closeMap()" style="flex:1; padding:18px; background:#333; color:white; border:none; border-radius:12px; font-weight:800;">CANCEL</button><button onclick="confirmMapLocation()" style="flex:2; padding:18px; background:var(--accent-blue); color:white; font-weight:800; border:none; border-radius:12px;">CONFIRM</button></div></div>
-
     <script>
-        const storageKeyPrefix = 'smart_v3500_'; 
+        const storageKeyPrefix = 'smart_v4000_'; 
         let viewDate = new Date(2026, 0, 1);
         let currentDay = 0, startSlot = null, endSlot = null, selectedColor = '#0070FF', editingIdx = -1, currentMode = 'add';
         let map, marker, tempCoords = null, tempWeather = {}, tempAddr = "";
-        let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false;
+        let memoEvents = [], memoCoords = null, memoAddr = "", isStampMode = false, isClearMode = false;
         const weatherMap = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
         const lastLocation = JSON.parse(localStorage.getItem('last_user_location') || '{"lat":37.4979,"lng":127.0276,"addr":"강남구"}');
         let globalLastCoords = { lat: lastLocation.lat, lng: lastLocation.lng }; let globalLastAddr = lastLocation.addr;
@@ -147,34 +147,63 @@
             } catch (e) {}
         }
 
-        /* CLEAR DAY 기능 */
-        function clearDayData() {
-            if(!confirm("이 날의 모든 일정을 초기화할까요?")) return;
+        /* [수정] 지우개(CLEAR) 반복 모드 활성화 */
+        function activateClearMode() {
+            if(!confirm("연속 지우개 모드를 실행할까요? 클릭하는 날짜의 모든 일정이 초기화됩니다.")) return;
+            isClearMode = true; isStampMode = false;
+            document.body.classList.remove('stamp-mode-active');
+            document.body.classList.add('clear-mode-active');
+            const statusBar = document.getElementById('copy-status-bar');
+            statusBar.innerText = "[🗑️지우개 모드 활성] 날짜를 클릭해 초기화하세요. (종료: ESC)";
+            statusBar.style.background = "var(--danger-red)";
+            statusBar.style.color = "#fff";
+            statusBar.style.display = 'flex';
+            closeModal();
+        }
+
+        /* 공통 모드 종료 함수 */
+        function deactivateSpecialMode() {
+            isStampMode = false; isClearMode = false;
+            document.body.classList.remove('stamp-mode-active', 'clear-mode-active');
+            document.getElementById('copy-status-bar').style.display = 'none';
+        }
+
+        window.addEventListener('keydown', (e) => { if (e.key === "Escape") deactivateSpecialMode(); });
+
+        /* 날짜 클릭 시 분기 로직 */
+        function handleDayAction(d) {
+            if (isStampMode) executeStampPaste(d);
+            else if (isClearMode) executeClearDay(d);
+            else openModal(d);
+        }
+
+        /* [복구] 지우개 실행 로직 */
+        function executeClearDay(targetDay) {
             const { key, data } = getStore();
-            if(data[currentDay]) {
-                delete data[currentDay];
+            if(data[targetDay]) {
+                delete data[targetDay];
                 localStorage.setItem(key, JSON.stringify(data));
                 renderCalendar();
-                clearCurrentSelection();
             }
         }
 
         function activateStampMode() {
             const { data } = getStore();
             const curData = data[currentDay];
-            if (!curData || (curData.events.length === 0)) return alert("복사 데이터 없음");
+            if (!curData || (curData.events.length === 0)) return alert("복사할 데이터가 없습니다.");
             memoEvents = JSON.parse(JSON.stringify(curData.events));
             memoCoords = curData.weather?.coords ? { ...curData.weather.coords } : null;
             memoAddr = curData.weather?.addr || "";
-            isStampMode = true;
+            isStampMode = true; isClearMode = false;
+            document.body.classList.remove('clear-mode-active');
             document.body.classList.add('stamp-mode-active');
-            document.getElementById('copy-status-bar').style.display = 'flex';
+            const statusBar = document.getElementById('copy-status-bar');
+            statusBar.innerText = "[💰스탬프 모드 활성] 달력을 클릭해 찍으세요. (종료: ESC)";
+            statusBar.style.background = "var(--ai-orange)";
+            statusBar.style.color = "#000";
+            statusBar.style.display = 'flex';
             closeModal();
         }
-
-        function deactivateStampMode() { isStampMode = false; document.body.classList.remove('stamp-mode-active'); document.getElementById('copy-status-bar').style.display = 'none'; }
-        window.addEventListener('keydown', (e) => { if (e.key === "Escape" && isStampMode) deactivateStampMode(); });
-        function handleDayAction(d) { if (isStampMode) executeStampPaste(d); else openModal(d); }
 
         async function executeStampPaste(targetDay) {
             const { key, data } = getStore();
@@ -299,7 +328,7 @@
         function deleteData() { const { key, data } = getStore(); data[currentDay].events.splice(editingIdx, 1); localStorage.setItem(key, JSON.stringify(data)); renderCalendar(); clearCurrentSelection(); }
         
         function openMap() { document.getElementById('map-overlay').style.display = 'flex'; const { data } = getStore(); const dayCoords = data[currentDay]?.weather?.coords; const targetLat = dayCoords ? dayCoords.lat : globalLastCoords.lat; const targetLng = dayCoords ? dayCoords.lng : globalLastCoords.lng; if (!map) { map = L.map('map-container').setView([targetLat, targetLng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); map.on('click', onMapClick); } else { map.setView([targetLat, targetLng], 13); } if (marker) map.removeLayer(marker); marker = L.marker([targetLat, targetLng]).addTo(map); tempCoords = { lat: targetLat, lng: targetLng }; tempAddr = dayCoords ? data[currentDay].weather.addr : globalLastAddr; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; setTimeout(() => map.invalidateSize(), 200); }
-        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => r.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); }
+        function onMapClick(e) { const lat = e.latlng.lat, lng = e.latlng.lng; if (marker) map.removeLayer(marker); marker = L.marker([lat, lng]).addTo(map); tempCoords = { lat, lng }; fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(res => res.json()).then(data => { tempAddr = data.display_name; document.getElementById('addr-display').innerText = "🏠 " + tempAddr; }); }
         function confirmMapLocation() { globalLastCoords = tempCoords; globalLastAddr = formatAddress(tempAddr); const { key, data } = getStore(); if(!data[currentDay]) data[currentDay] = { events: [], weather: {} }; data[currentDay].weather.coords = tempCoords; data[currentDay].weather.addr = tempAddr; localStorage.setItem(key, JSON.stringify(data)); document.getElementById('map-overlay').style.display = 'none'; renderCalendar(); clearCurrentSelection(); }
         function closeMap() { document.getElementById('map-overlay').style.display = 'none'; }
         function goDirections() { const { data } = getStore(); const coords = data[currentDay]?.weather?.coords; const addr = data[currentDay]?.weather?.addr || globalLastAddr; if(coords) { window.open(`https://map.kakao.com/link/to/${addr},${coords.lat},${coords.lng}`, '_blank'); } }
